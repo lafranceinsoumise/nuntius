@@ -1,0 +1,42 @@
+from django.core import mail
+from django.test import TestCase
+
+from mailer.models import Campaign, BaseSubscriber
+from mailer.tasks import send_campaign
+from tests.models import TestSegment
+
+
+class SendingTestCase(TestCase):
+    fixtures = ['subscribers.json']
+
+    def test_segments(self):
+        self.assertEqual(TestSegment.objects.get(id="subscribed").get_queryset().count(), 2)
+
+    def test_send_campaign(self):
+        segment = TestSegment.objects.get(id="subscribed")
+        campaign = Campaign.objects.create(segment=segment)
+        send_campaign(campaign.pk)
+
+        self.assertEqual(segment.get_queryset().count(), len(mail.outbox), campaign.get_sent_count())
+
+    def test_send_only_to_subscribed(self):
+        segment = TestSegment.objects.get(id="all_status")
+        campaign = Campaign.objects.create(segment=segment)
+        send_campaign(campaign.pk)
+
+        self.assertEqual(
+            segment.get_queryset().filter(subscriber_status=BaseSubscriber.STATUS_SUBSCRIBED).count(),
+            len(mail.outbox),
+            campaign.get_sent_count()
+        )
+
+    def test_send_only_once(self):
+        segment = TestSegment.objects.get(id="subscribed")
+        campaign = Campaign.objects.create(segment=segment)
+        send_campaign(campaign.pk)
+        send_campaign(campaign.pk)
+
+        self.assertEqual(segment.get_queryset().count(), len(mail.outbox), campaign.get_sent_count())
+
+
+
