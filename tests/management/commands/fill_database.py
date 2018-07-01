@@ -36,7 +36,7 @@ class Command(BaseCommand):
         objs = (Relation(
             testsegment=segment,
             testsubscriber=test_subscriber
-        ) for test_subscriber in tqdm(fake_emails.all(), total=fake_emails.count()))
+        ) for test_subscriber in fake_emails.all())
 
         with tqdm(total=100000) as pbar:
             while True:
