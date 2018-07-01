@@ -14,9 +14,11 @@ def send_campaign(campaign_pk):
     campaign.status = Campaign.STATUS_SENDING
     campaign.save()
 
+    queryset = campaign.segment.get_queryset().exclude(campaignsentevent__campaign=campaign)
+
     try:
         with mail.get_connection() as connection:
-            for subscriber in campaign.segment.get_queryset().iterator():
+            for subscriber in queryset.iterator():
                 def send_subscriber(subscriber, retries=10):
                     if subscriber.get_subscriber_status() != BaseSubscriber.STATUS_SUBSCRIBED:
                         return

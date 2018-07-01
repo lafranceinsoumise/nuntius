@@ -171,11 +171,17 @@ class CampaignSentEvent(models.Model):
         RESULT_BOUNCED, _("Bounced")
     )
 
-    subscriber_id = models.CharField(_("Unique subscriber ID"), max_length=255)
+    subscriber = models.ForeignKey(
+        settings.MAILER_SUBSCRIBER_MODEL,
+        models.SET_NULL,
+        verbose_name=_("Subscriber"),
+        null=True,
+        blank=True,
+    )
     email = models.EmailField(_("Email adress at event time"))
-    campaign = models.ForeignKey('Campaign', _("Campaign"))
+    campaign = models.ForeignKey('Campaign', models.CASCADE, _("Campaign"))
     datetime = models.DateTimeField(auto_now_add=True)
     result = models.CharField(_("Operation result"), max_length=2, default=RESULT_PENDING)
 
     class Meta:
-        unique_together = ('campaign', 'subscriber_id')
+        unique_together = ('campaign', 'subscriber')

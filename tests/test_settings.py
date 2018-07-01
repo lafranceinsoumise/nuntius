@@ -52,6 +52,7 @@ DATABASES = {
 STATIC_URL = '/static/'
 
 MAILER_SEGMENT_MODELS = ['tests.testsegment']
+MAILER_SUBSCRIBER_MODEL = 'tests.TestSubscriber'
 MAILER_CELERY_BROKER_URL = 'redis://'
 
 EMAIL_HOST = 'localhost'
