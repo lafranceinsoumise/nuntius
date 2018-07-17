@@ -1,4 +1,5 @@
 from smtplib import SMTPServerDisconnected, SMTPRecipientsRefused, SMTPSenderRefused
+from time import sleep
 
 from django.core import mail
 from django.core.mail import EmailMultiAlternatives
@@ -60,6 +61,9 @@ def send_campaign(campaign_pk):
                                 campaign.save()
                                 raise e
                             connection.close()
+
+                            sleep(1/retries)
+
                             connection.open()
                             send_subscriber(subscriber, retries=retries-1)
                         except SMTPRecipientsRefused:
