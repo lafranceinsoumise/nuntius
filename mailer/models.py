@@ -73,8 +73,10 @@ class Campaign(models.Model):
             return None
         res = Inspect(app=mailer_celery_app).query_task(self.task_uuid)
 
-        for host_tasks in res.values():
-            if host_tasks.get(str(self.task_uuid)) is not None:
+        if res is not None:
+            for host_tasks in res.values():
+                if host_tasks.get(str(self.task_uuid)) is None:
+                    continue
                 self._task = host_tasks[str(self.task_uuid)]
                 self.status = Campaign.STATUS_SENDING
                 self.save(update_fields=['status'])
