@@ -32,11 +32,12 @@ class SendingTestCase(TestCase):
 
     def test_send_only_once(self):
         segment = TestSegment.objects.get(id="subscribed")
-        campaign = Campaign.objects.create(segment=segment)
+        campaign = Campaign.objects.create(segment=segment, message_content_text='test [email] test')
         send_campaign(campaign.pk)
         send_campaign(campaign.pk)
 
         self.assertEqual(segment.get_queryset().count(), len(mail.outbox), campaign.get_sent_count())
+        self.assertIn(f'test {segment.get_queryset().first().email} test', str(mail.outbox[0].message()))
 
 
 

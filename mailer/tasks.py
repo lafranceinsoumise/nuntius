@@ -1,12 +1,21 @@
+import re
 from smtplib import SMTPServerDisconnected, SMTPRecipientsRefused, SMTPSenderRefused
 from time import sleep
 
 from django.core import mail
 from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
+from django.template import Template, Context
 
 from mailer.celery import mailer_celery_app
 from mailer.models import Campaign, BaseSubscriber, CampaignSentEvent
+
+
+def replace_vars(string, data):
+    var_regex = re.compile(r'\[([-a-zA-Z_]+)\]')
+    context = Context(data)
+
+    return Template(var_regex.sub(r'{{ \1 }}', string)).render(context=context)
 
 
 @mailer_celery_app.task()
@@ -42,15 +51,17 @@ def send_campaign(campaign_pk):
                         if event.result != CampaignSentEvent.RESULT_PENDING:
                             return
 
+                        subscriber_data = subscriber.get_subscriber_data()
+
                         message = EmailMultiAlternatives(
                             subject=campaign.message_subject,
-                            body=campaign.message_content_text,
+                            body=replace_vars(campaign.message_content_text, subscriber_data),
                             from_email=campaign.message_from_email,
                             to=[email],
                             reply_to=campaign.message_reply_to_email,
                             connection=connection,
                         )
-                        message.attach_alternative(campaign.message_content_html, 'text/html')
+                        message.attach_alternative(replace_vars(campaign.message_content_html, subscriber_data), 'text/html')
                         try:
                             message.send()
                             event.result = CampaignSentEvent.RESULT_OK

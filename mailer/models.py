@@ -158,6 +158,11 @@ class BaseSubscriber:
 
         raise NotImplementedError()
 
+    def get_subscriber_data(self):
+        return {
+            'email': self.email
+        }
+
 
 class CampaignSentEvent(models.Model):
     RESULT_PENDING = 'P'
