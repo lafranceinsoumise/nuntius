@@ -9,6 +9,7 @@ tqdm = "*"
 [packages]
 django = "*"
 celery = "*"
+pillow = "*"
 
 [requires]
 python_version = "3.6"

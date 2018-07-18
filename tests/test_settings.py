@@ -1,5 +1,7 @@
 import os
 
+from django.conf.global_settings import DEFAULT_FILE_STORAGE
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEBUG = True
 SECRET_KEY = 'fake-key'
@@ -54,6 +56,9 @@ STATIC_URL = '/static/'
 MAILER_SEGMENT_MODELS = ['tests.testsegment']
 MAILER_SUBSCRIBER_MODEL = 'tests.TestSubscriber'
 MAILER_CELERY_BROKER_URL = 'redis://'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = 'media'
 
 EMAIL_HOST = 'localhost'
 EMAIL_PORT = '1025'

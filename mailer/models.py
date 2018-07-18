@@ -7,6 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import fields, Q
 from django.utils.translation import gettext as _
+from stdimage import StdImageField
 
 from mailer.celery import mailer_celery_app
 
@@ -57,6 +58,7 @@ class Campaign(models.Model):
     message_reply_to_name = fields.CharField(_("\"Reply to\" name"), max_length=255, blank=True)
     message_reply_to_email = fields.CharField(_("\"Reply to\" email address"), max_length=255, blank=True)
     message_subject = fields.CharField(_("Message subject line"), max_length=255, blank=True)
+    message_mosaico_data = fields.TextField(_("Mosaico data"), blank=True)
     message_content_html = fields.TextField(_("Message content (HTML)"), blank=True)
     message_content_text = fields.TextField(_("Message content (text)"))
 
@@ -187,3 +189,8 @@ class CampaignSentEvent(models.Model):
 
     class Meta:
         unique_together = ('campaign', 'subscriber')
+
+
+class MosaicoImage(models.Model):
+    file = StdImageField(upload_to='mosaico', variations={'thumbnail': (90, 90)})
+    created = fields.DateTimeField(auto_now_add=True)
