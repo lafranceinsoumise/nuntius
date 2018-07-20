@@ -37,7 +37,7 @@ def send_campaign(campaign_pk):
 
                     (event, created) = CampaignSentEvent.objects.get_or_create(
                         campaign=campaign,
-                        subscriber_id=subscriber.get_subscriber_id(),
+                        subscriber=subscriber,
                         email=email,
                     )
 
@@ -46,7 +46,7 @@ def send_campaign(campaign_pk):
 
                     with transaction.atomic():
                         event = CampaignSentEvent.objects.select_for_update()\
-                            .get(subscriber_id=subscriber.get_subscriber_id(), campaign=campaign)
+                            .get(subscriber=subscriber, campaign=campaign)
 
                         if event.result != CampaignSentEvent.RESULT_PENDING:
                             return
