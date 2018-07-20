@@ -53,38 +53,32 @@ Celery is used to queue and send emails. Nuntius must have its own celery worker
     # nuntius.models.BaseSubscriber
 
     class BaseSubscriber:
-    STATUS_SUBSCRIBED = 1
-    STATUS_UNSUBSCRIBED = 2
-    STATUS_BOUNCED = 3
-    STATUS_COMPLAINED = 4
-    STATUS_CHOICES = (
-        (STATUS_SUBSCRIBED, _("Subscribed")),
-        (STATUS_UNSUBSCRIBED, _("Unsubscribed")),
-        (STATUS_BOUNCED, _("Bounced")),
-        (STATUS_COMPLAINED, _("Complained"))
-    )
+        STATUS_SUBSCRIBED = 1
+        STATUS_UNSUBSCRIBED = 2
+        STATUS_BOUNCED = 3
+        STATUS_COMPLAINED = 4
+        STATUS_CHOICES = (
+            (STATUS_SUBSCRIBED, _("Subscribed")),
+            (STATUS_UNSUBSCRIBED, _("Unsubscribed")),
+            (STATUS_BOUNCED, _("Bounced")),
+            (STATUS_COMPLAINED, _("Complained"))
+        )
 
-    def get_subscriber_status(self):
-        if hasattr(self, 'subscriber_status'):
-            return self.subscriber_status
-        raise NotImplementedError()
+        def get_subscriber_status(self):
+            if hasattr(self, 'subscriber_status'):
+                return self.subscriber_status
+            raise NotImplementedError()
 
-    def set_subscriber_status(self, status):
-        if hasattr(self, 'subscriber_status'):
-            self.subscriber_status = status
-            return
-        raise NotImplementedError()
+        def get_subscriber_email(self):
+            if hasattr(self, 'email'):
+                return self.email
 
-    def get_subscriber_email(self):
-        if hasattr(self, 'email'):
-            return self.email
+            raise NotImplementedError()
 
-        raise NotImplementedError()
-
-    def get_subscriber_data(self):
-        return {
-            'email': self.email
-        }
+        def get_subscriber_data(self):
+            return {
+                'email': self.email
+            }
     ````
     
     Here is an example of a subscriber model you can implement :

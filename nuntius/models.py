@@ -143,12 +143,6 @@ class BaseSubscriber:
             return self.subscriber_status
         raise NotImplementedError()
 
-    def set_subscriber_status(self, status):
-        if hasattr(self, 'subscriber_status'):
-            self.subscriber_status = status
-            return
-        raise NotImplementedError()
-
     def get_subscriber_email(self):
         if hasattr(self, 'email'):
             return self.email
