@@ -1,5 +1,3 @@
-from random import choice
-
 from django.db import models
 from django.db.models import fields
 

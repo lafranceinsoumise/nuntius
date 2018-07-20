@@ -1,12 +1,8 @@
 import json
-from urllib.parse import urlparse
 
-from PIL import Image
-from django.conf import settings
 from django.contrib import admin
 from django import forms
 from django.http import HttpResponseBadRequest, HttpResponse, JsonResponse
-from django.http.request import validate_host
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.templatetags.static import static
