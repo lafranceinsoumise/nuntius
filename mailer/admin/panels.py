@@ -15,13 +15,12 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.generic import CreateView, DetailView
+from django.views.generic import CreateView
 
 from mailer.admin.fields import GenericModelChoiceField
 from mailer.celery import mailer_celery_app
 from mailer.models import segment_cts, Campaign, MosaicoImage
 from mailer.tasks import send_campaign
-from mailer.utils import generate_placeholder
 
 
 class CampaignAdminForm(forms.ModelForm):
@@ -64,44 +63,6 @@ class MosaicoImageUploadView(CreateView):
 
     def get(self, *args, **kwargs):
         return JsonResponse({'files': [self.image_dict(image) for image in MosaicoImage.objects.all()]})
-
-
-class MosaicoImageProcessorView(DetailView):
-    def get(self, *args, **kwargs):
-        if self.request.GET.get('method') == 'placeholder':
-            (width, height) = self.request.GET.get('params').split(',')
-            image = generate_placeholder(int(width), int(height))
-            response = HttpResponse(content_type="image/png")
-            image.save(response, "PNG")
-            return response
-
-        if self.request.GET.get('src'):
-            src = self.request.GET.get('src')
-            host = urlparse(src).netloc.split(':')[0]
-            allowed_hosts = settings.ALLOWED_HOSTS
-            if settings.DEBUG and not allowed_hosts:
-                allowed_hosts = ['localhost', '127.0.0.1', '[::1]']
-            if not validate_host(host, allowed_hosts):
-                return HttpResponseBadRequest()
-
-            (width, height) = self.request.GET.get('params').split(',')
-            (width, height) = (int(width.replace('null', '0')), int(height.replace('null', '0')))
-            image = MosaicoImage.objects.get(file=urlparse(src).path.replace(settings.MEDIA_URL, '', 1))
-            image = Image.open(image.file.path)
-
-            if width and not height:
-                ratio = width/image.size[0]
-            if height and not width:
-                ratio = height/image.size[1]
-            if width and height:
-                ratio = min(width/image.size[0], height/image.size[1])
-
-            image.resize((round(size*ratio) for size in image.size), Image.ANTIALIAS)
-            response = HttpResponse(content_type=f"image/{image.format.lower()}")
-            image.save(response, image.format)
-            return response
-
-        return HttpResponseBadRequest()
 
 
 @admin.register(Campaign)
@@ -197,7 +158,6 @@ class CampaignAdmin(admin.ModelAdmin):
             path('<pk>/mosaico/save/', self.admin_site.admin_view(self.mosaico_save_view), name='mailer_campaign_mosaico_save'),
             path('<pk>/mosaico/data/', self.admin_site.admin_view(self.mosaico_load_view), name='mailer_campaign_mosaico_load'),
             path('<pk>/mosaico/upload/', self.admin_site.admin_view(MosaicoImageUploadView.as_view()), name='mailer_campaign_mosaico_image_upload'),
-            path('<pk>/mosaico/img/', self.admin_site.admin_view(MosaicoImageProcessorView.as_view()), name='mailer_campaign_mosaico_image_resize'),
         ] + super().get_urls()
 
     def send_view(self, request, pk):

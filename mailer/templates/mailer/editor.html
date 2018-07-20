@@ -69,7 +69,7 @@
         $.get(basePath + 'data/', null, function(data) {
           Mosaico.init({
             data: data,
-            imgProcessorBackend: basePath +'img/',
+            imgProcessorBackend: '{%  url 'mailer_mosaico_image_processor' %}',
             fileuploadConfig: {
               url: basePath + 'upload/',
               paramName: 'file',
