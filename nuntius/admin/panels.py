@@ -1,7 +1,9 @@
 import json
 
+from django.conf import settings
 from django.contrib import admin
 from django import forms
+from django.contrib.contenttypes.models import ContentType
 from django.http import HttpResponseBadRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
@@ -89,6 +91,11 @@ class CampaignAdmin(admin.ModelAdmin):
         return object
 
     def segment_subscribers(self, instance):
+        if instance.segment is None:
+            model = settings.NUNTIUS_SUBSCRIBER_MODEL
+            model_class = ContentType.objects.get(app_label=model.split('.')[0],
+                                                  model=model.split('.')[1].lower()).model_class()
+            return model_class.objects.count()
         return instance.segment.get_subscribers_count()
     segment_subscribers.short_description = _("Subscribers")
 

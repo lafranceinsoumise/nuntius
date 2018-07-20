@@ -19,6 +19,8 @@ def segment_cts_q():
 
 
 def segment_cts():
+    if settings.NUNTIUS_SEGMENT_MODELS == []:
+        return ContentType.objects.none()
     return ContentType.objects.filter(segment_cts_q())
 
 
