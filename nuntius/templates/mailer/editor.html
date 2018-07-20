@@ -9,9 +9,9 @@
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
     <link rel="icon" href="/favicon.ico" type="image/x-icon" />
 
-    <script src="{% static "mailer/mosaico/mosaico-libs.min.js" %}"></script>
-    <script src="{% static "mailer/mosaico/mosaico.min.js" %}"></script>
-    <script src="{% static "mailer/js.cookie.js" %}"></script>
+    <script src="{% static "nuntius/mosaico/mosaico-libs.min.js" %}"></script>
+    <script src="{% static "nuntius/mosaico/mosaico.min.js" %}"></script>
+    <script src="{% static "nuntius/js.cookie.js" %}"></script>
     <script>
       $(function() {
         if (!Mosaico.isCompatible()) {
@@ -38,7 +38,7 @@
 
         var plugins = [function(vm) {
           // Logo path
-          vm.logoPath = '{% static "mailer/mosaico/img/mosaico32.png" %}';
+          vm.logoPath = '{% static "nuntius/mosaico/img/mosaico32.png" %}';
 
           // Save command
           var saveCmd = {
@@ -69,7 +69,7 @@
         $.get(basePath + 'data/', null, function(data) {
           Mosaico.init({
             data: data,
-            imgProcessorBackend: '{%  url 'mailer_mosaico_image_processor' %}',
+            imgProcessorBackend: '{%  url 'nuntius_mosaico_image_processor' %}',
             fileuploadConfig: {
               url: basePath + 'upload/',
               paramName: 'file',
@@ -79,8 +79,8 @@
       });
     </script>
     
-    <link rel="stylesheet" href="{% static "mailer/mosaico/mosaico-libs.min.css" %}" />
-    <link rel="stylesheet" href="{% static "mailer/mosaico/mosaico-material.min.css" %}" />
+    <link rel="stylesheet" href="{% static "nuntius/mosaico/mosaico-libs.min.css" %}" />
+    <link rel="stylesheet" href="{% static "nuntius/mosaico/mosaico-material.min.css" %}" />
   </head>
   <body class="mo-standalone">
   </body>

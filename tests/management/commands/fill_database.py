@@ -3,7 +3,7 @@ from itertools import islice
 from django.core.management import BaseCommand
 from tqdm import tqdm
 
-from mailer.models import BaseSubscriber
+from nuntius.models import BaseSubscriber
 from tests.models import TestSubscriber, TestSegment
 
 

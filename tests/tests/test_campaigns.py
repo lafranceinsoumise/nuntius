@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from mailer.models import Campaign
+from nuntius.models import Campaign
 from tests.models import TestSegment
 
 

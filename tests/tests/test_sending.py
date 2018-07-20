@@ -1,8 +1,8 @@
 from django.core import mail
 from django.test import TestCase
 
-from mailer.models import Campaign, BaseSubscriber
-from mailer.tasks import send_campaign
+from nuntius.models import Campaign, BaseSubscriber
+from nuntius.tasks import send_campaign
 from tests.models import TestSegment
 
 

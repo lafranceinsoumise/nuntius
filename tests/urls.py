@@ -18,11 +18,11 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 
-from mailer import urls as mailer_urls
+from nuntius import urls as nuntius_urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('mailer/', include(mailer_urls))
+    path('nuntius/', include(nuntius_urls))
 ]
 
 if settings.DEBUG:

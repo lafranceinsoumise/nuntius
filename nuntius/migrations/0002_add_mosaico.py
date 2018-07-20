@@ -8,7 +8,7 @@ import stdimage.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mailer', '0001_initial'),
+        ('nuntius', '0001_initial'),
     ]
 
     operations = [

@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from mailer.models import BaseSubscriber
+from nuntius.models import BaseSubscriber
 from tests.models import TestSubscriber
 
 

@@ -9,12 +9,12 @@ from django.db.models import fields, Q
 from django.utils.translation import gettext as _
 from stdimage import StdImageField
 
-from mailer.celery import mailer_celery_app
+from nuntius.celery import nuntius_celery_app
 
 
 def segment_cts_q():
     segment_cts_qs = [Q(app_label=models.split('.')[0], model=models.split('.')[1]) for models in
-                      settings.MAILER_SEGMENT_MODELS]
+                      settings.NUNTIUS_SEGMENT_MODELS]
     return reduce(lambda q1, q2: q1 | q2, segment_cts_qs)
 
 
@@ -80,7 +80,7 @@ class Campaign(models.Model):
                 self.save(update_fields=['status'])
             return
 
-        res = Inspect(app=mailer_celery_app).query_task(self.task_uuid)
+        res = Inspect(app=nuntius_celery_app).query_task(self.task_uuid)
 
         # celery is down
         if res is None:
@@ -184,7 +184,7 @@ class CampaignSentEvent(models.Model):
     )
 
     subscriber = models.ForeignKey(
-        settings.MAILER_SUBSCRIBER_MODEL,
+        settings.NUNTIUS_SUBSCRIBER_MODEL,
         models.SET_NULL,
         verbose_name=_("Subscriber"),
         null=True,

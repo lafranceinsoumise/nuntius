@@ -17,10 +17,10 @@ from django.utils.translation import gettext as _
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import CreateView
 
-from mailer.admin.fields import GenericModelChoiceField
-from mailer.celery import mailer_celery_app
-from mailer.models import segment_cts, Campaign, MosaicoImage
-from mailer.tasks import send_campaign
+from nuntius.admin.fields import GenericModelChoiceField
+from nuntius.celery import nuntius_celery_app
+from nuntius.models import segment_cts, Campaign, MosaicoImage
+from nuntius.tasks import send_campaign
 
 
 class CampaignAdminForm(forms.ModelForm):
@@ -132,12 +132,12 @@ class CampaignAdmin(admin.ModelAdmin):
         if instance.status == Campaign.STATUS_SENDING:
             return format_html(
                 '<a href="{}" class="button">' + _("Pause") + '</a>',
-                reverse('admin:mailer_campaign_pause', args=[instance.pk])
+                reverse('admin:nuntius_campaign_pause', args=[instance.pk])
             )
 
         return format_html(
             '<a href="{}" class="button">' + _("Send") + '</a>',
-            reverse('admin:mailer_campaign_send', args=[instance.pk])
+            reverse('admin:nuntius_campaign_send', args=[instance.pk])
         )
     send_button.short_description = _("Send")
 
@@ -148,44 +148,44 @@ class CampaignAdmin(admin.ModelAdmin):
         return format_html(
             '<a href="{}" class="button">' + _("Access the editor") + '</a> '\
             '<a href="{}" class="button">' + _("Preview result") + '</a>',
-            reverse('admin:mailer_campaign_mosaico', args=[instance.pk]) + '#' + static('mailer/templates/versafix-1/template-versafix-1.html'),
-            reverse('admin:mailer_campaign_mosaico_preview', args=[instance.pk])
+            reverse('admin:nuntius_campaign_mosaico', args=[instance.pk]) + '#' + static('nuntius/templates/versafix-1/template-versafix-1.html'),
+            reverse('admin:nuntius_campaign_mosaico_preview', args=[instance.pk])
         )
     mosaico_buttons.short_description = _("HTML content")
 
     def get_urls(self):
         return [
-            path('<pk>/send/', self.admin_site.admin_view(self.send_view), name='mailer_campaign_send'),
-            path('<pk>/pause/', self.admin_site.admin_view(self.pause_view), name='mailer_campaign_pause'),
-            path('<pk>/mosaico/', ensure_csrf_cookie(self.admin_site.admin_view(self.mosaico_view)), name='mailer_campaign_mosaico'),
-            path('<pk>/mosaico/preview/', self.admin_site.admin_view(self.mosaico_preview), name='mailer_campaign_mosaico_preview'),
-            path('<pk>/mosaico/save/', self.admin_site.admin_view(self.mosaico_save_view), name='mailer_campaign_mosaico_save'),
-            path('<pk>/mosaico/data/', self.admin_site.admin_view(self.mosaico_load_view), name='mailer_campaign_mosaico_load'),
-            path('<pk>/mosaico/upload/', self.admin_site.admin_view(MosaicoImageUploadView.as_view()), name='mailer_campaign_mosaico_image_upload'),
+            path('<pk>/send/', self.admin_site.admin_view(self.send_view), name='nuntius_campaign_send'),
+            path('<pk>/pause/', self.admin_site.admin_view(self.pause_view), name='nuntius_campaign_pause'),
+            path('<pk>/mosaico/', ensure_csrf_cookie(self.admin_site.admin_view(self.mosaico_view)), name='nuntius_campaign_mosaico'),
+            path('<pk>/mosaico/preview/', self.admin_site.admin_view(self.mosaico_preview), name='nuntius_campaign_mosaico_preview'),
+            path('<pk>/mosaico/save/', self.admin_site.admin_view(self.mosaico_save_view), name='nuntius_campaign_mosaico_save'),
+            path('<pk>/mosaico/data/', self.admin_site.admin_view(self.mosaico_load_view), name='nuntius_campaign_mosaico_load'),
+            path('<pk>/mosaico/upload/', self.admin_site.admin_view(MosaicoImageUploadView.as_view()), name='nuntius_campaign_mosaico_image_upload'),
         ] + super().get_urls()
 
     def send_view(self, request, pk):
         campaign = Campaign.objects.get(pk=pk)
         if campaign.get_task_and_update_status() is not None:
-            return redirect(reverse('admin:mailer_campaign_change', args=[pk]))
+            return redirect(reverse('admin:nuntius_campaign_change', args=[pk]))
 
         r = send_campaign.delay(pk)
         campaign.task_uuid = r.id
         campaign.save()
 
-        return redirect(reverse('admin:mailer_campaign_change', args=[pk]))
+        return redirect(reverse('admin:nuntius_campaign_change', args=[pk]))
 
     def pause_view(self, request, pk):
         campaign = Campaign.objects.get(pk=pk)
         if campaign.get_task_and_update_status() is None:
-            return redirect(reverse('admin:mailer_campaign_change', args=[pk]))
+            return redirect(reverse('admin:nuntius_campaign_change', args=[pk]))
 
-        mailer_celery_app.control.revoke(str(campaign.task_uuid), terminate=True)
+        nuntius_celery_app.control.revoke(str(campaign.task_uuid), terminate=True)
 
-        return redirect(reverse('admin:mailer_campaign_change', args=[pk]))
+        return redirect(reverse('admin:nuntius_campaign_change', args=[pk]))
 
     def mosaico_view(self, request, pk):
-        return TemplateResponse(request=request, template="mailer/editor.html")
+        return TemplateResponse(request=request, template="nuntius/editor.html")
 
     def mosaico_preview(self, request, pk):
         campaign = Campaign.objects.get(pk=pk)

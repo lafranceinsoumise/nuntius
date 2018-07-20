@@ -2,7 +2,7 @@
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
-import mailer.models
+import nuntius.models
 
 
 class Migration(migrations.Migration):
@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        migrations.swappable_dependency(settings.MAILER_SUBSCRIBER_MODEL),
+        migrations.swappable_dependency(settings.NUNTIUS_SUBSCRIBER_MODEL),
         ('contenttypes', '0002_remove_content_type_name')
     ]
 
@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
                 ('message_content_text', models.TextField(verbose_name='Message content (text)')),
                 ('segment_id', models.CharField(max_length=255)),
                 ('status', models.IntegerField(choices=[(0, 'Waiting'), (1, 'Sending'), (2, 'Sent'), (3, 'Error')], default=0)),
-                ('segment_content_type', models.ForeignKey(limit_choices_to=mailer.models.segment_cts_q, on_delete=django.db.models.deletion.PROTECT, to='contenttypes.ContentType')),
+                ('segment_content_type', models.ForeignKey(limit_choices_to=nuntius.models.segment_cts_q, on_delete=django.db.models.deletion.PROTECT, to='contenttypes.ContentType')),
             ],
         ),
         migrations.CreateModel(
@@ -42,12 +42,12 @@ class Migration(migrations.Migration):
                 ('email', models.EmailField(max_length=254, verbose_name='Email adress at event time')),
                 ('datetime', models.DateTimeField(auto_now_add=True)),
                 ('result', models.CharField(default='P', max_length=2, verbose_name='Operation result')),
-                ('campaign', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='Campaign', to='mailer.Campaign')),
+                ('campaign', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='Campaign', to='nuntius.Campaign')),
                 ('subscriber', models.ForeignKey(
                     null=True, blank=True,
                     on_delete=django.db.models.deletion.SET_NULL,
                     related_name='Subscriber',
-                    to=settings.MAILER_SUBSCRIBER_MODEL
+                    to=settings.NUNTIUS_SUBSCRIBER_MODEL
                 )),
             ],
         ),

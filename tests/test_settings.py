@@ -13,7 +13,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'tests',
-    'mailer'
+    'nuntius'
 ]
 
 MIDDLEWARE = [
@@ -53,9 +53,9 @@ DATABASES = {
 
 STATIC_URL = '/static/'
 
-MAILER_SEGMENT_MODELS = ['tests.testsegment']
-MAILER_SUBSCRIBER_MODEL = 'tests.TestSubscriber'
-MAILER_CELERY_BROKER_URL = 'redis://'
+NUNTIUS_SEGMENT_MODELS = ['tests.testsegment']
+NUNTIUS_SUBSCRIBER_MODEL = 'tests.TestSubscriber'
+NUNTIUS_CELERY_BROKER_URL = 'redis://'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = 'media'

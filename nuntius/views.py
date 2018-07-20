@@ -6,8 +6,8 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from django.http.request import validate_host
 from django.views.generic import DetailView
 
-from mailer.models import MosaicoImage
-from mailer.utils import generate_placeholder
+from nuntius.models import MosaicoImage
+from nuntius.utils import generate_placeholder
 
 
 class MosaicoImageProcessorView(DetailView):

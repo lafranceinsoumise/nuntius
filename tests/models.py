@@ -3,7 +3,7 @@ from random import choice
 from django.db import models
 from django.db.models import fields
 
-from mailer.models import BaseSubscriber, BaseSegment
+from nuntius.models import BaseSubscriber, BaseSegment
 
 
 class TestSegment(BaseSegment, models.Model):
