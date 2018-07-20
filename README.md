@@ -154,3 +154,9 @@ class LastLoginDateSegment(BaseSegment, models.Model):
 * `get_subscribers_count` is only there for convenience in the admin panel, it does not
     have to be accurate. If you want to have it accurate, you should however take
     your subscribers status into account.
+
+## License
+
+Copyright is owned by Guillaume Royer and Arthur Cheysson.
+
+You can use Nuntius under GPLv3 terms.
