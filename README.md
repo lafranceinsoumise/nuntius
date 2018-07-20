@@ -39,7 +39,7 @@ Celery is used to queue and send emails. Nuntius must have its own celery worker
     ````
 2. Include Nuntius urlconf in your project `urls.py` like this:
     ````python
-        path('nuntius/', include('polls.urls')),
+        path('nuntius/', include('nuntius.urls')),
     ````
 3. Edit or create your subscriber model so it works with Nuntius.
    You must implement all the method from `nuntius.models.BaseSubscriber`.
