@@ -119,7 +119,11 @@ class CampaignAdmin(admin.ModelAdmin):
         task = instance.get_task_and_update_status()
         if task is not None:
             return task[0]
-        return '-'
+        if instance.task_uuid is None:
+            return '-'
+
+        return _("Connection to celery failed")
+
     task_state.short_description = _("Send task state")
 
     def send_button(self, instance):

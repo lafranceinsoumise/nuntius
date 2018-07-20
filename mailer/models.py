@@ -69,32 +69,35 @@ class Campaign(models.Model):
     status = fields.IntegerField(choices=STATUS_CHOICES, default=STATUS_WAITING)
 
     def get_task_and_update_status(self):
+        # caching
         if self._task is not None:
             return self._task
+
+        # no task known for this campaign
         if self.task_uuid is None:
-            return None
+            if self.status == Campaign.STATUS_SENDING:
+                self.status = Campaign.STATUS_WAITING
+                self.save(update_fields=['status'])
+            return
+
         res = Inspect(app=mailer_celery_app).query_task(self.task_uuid)
 
-        if res is not None:
-            for host_tasks in res.values():
-                if host_tasks.get(str(self.task_uuid)) is None:
-                    continue
-                self._task = host_tasks[str(self.task_uuid)]
-                self.status = Campaign.STATUS_SENDING
-                self.save(update_fields=['status'])
+        # celery is down
+        if res is None:
+            return
 
-                return host_tasks[str(self.task_uuid)]
+        for host_tasks in res.values():
+            if host_tasks.get(str(self.task_uuid)) is None:
+                continue
+            self.status = Campaign.STATUS_SENDING
+            self.save(update_fields=['status'])
+            self._task = host_tasks[str(self.task_uuid)]
 
+            return host_tasks[str(self.task_uuid)]
+
+        # celery is up but task is unkown
         self.task_uuid = None
-        update_fields = ['task_uuid']
-
-        if self.status == Campaign.STATUS_SENDING:
-            self.status = Campaign.STATUS_WAITING
-            update_fields.append('status')
-
-        self.save(update_fields=update_fields)
-
-        return None
+        self.save(update_fields=['task_uuid'])
 
     def get_sent_count(self):
         return CampaignSentEvent.objects.filter(campaign=self).exclude(result=CampaignSentEvent.RESULT_PENDING).count()
