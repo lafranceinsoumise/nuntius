@@ -24,7 +24,7 @@ def send_campaign(campaign_pk):
     campaign.status = Campaign.STATUS_SENDING
     campaign.save()
 
-    queryset = campaign.segment.get_queryset().exclude(campaignsentevent__campaign=campaign)
+    queryset = campaign.segment.get_subscribers_queryset().exclude(campaignsentevent__campaign=campaign)
 
     try:
         with mail.get_connection() as connection:

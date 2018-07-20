@@ -89,7 +89,7 @@ class CampaignAdmin(admin.ModelAdmin):
         return object
 
     def segment_subscribers(self, instance):
-        return instance.segment.get_subscriber_count()
+        return instance.segment.get_subscribers_count()
     segment_subscribers.short_description = _("Subscribers")
 
     def sent_to(self, instance):

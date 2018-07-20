@@ -10,11 +10,11 @@ class TestSegment(BaseSegment, models.Model):
     def get_display_name(self):
         return self.id
 
-    def get_queryset(self):
+    def get_subscribers_queryset(self):
         return TestSubscriber.objects.filter(segments__id=self.id)
 
-    def get_subscriber_count(self):
-        return self.get_queryset().filter(subscriber_status=BaseSubscriber.STATUS_SUBSCRIBED).count()
+    def get_subscribers_count(self):
+        return self.get_subscribers_queryset().filter(subscriber_status=BaseSubscriber.STATUS_SUBSCRIBED).count()
 
     def __str__(self):
         return self.get_display_name()

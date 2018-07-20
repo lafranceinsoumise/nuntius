@@ -119,10 +119,10 @@ class BaseSegment:
     def get_display_name(self):
         raise NotImplementedError()
 
-    def get_queryset(self):
+    def get_subscribers_queryset(self):
         raise NotImplementedError()
 
-    def get_subscriber_count(self):
+    def get_subscribers_count(self):
         raise NotImplementedError
 
 
