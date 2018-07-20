@@ -47,7 +47,7 @@ TEMPLATES = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'test_mailer',
+        'NAME': 'nuntius',
     }
 }
 

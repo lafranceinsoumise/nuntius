@@ -20,7 +20,7 @@ from nuntius.tasks import send_campaign
 
 
 class CampaignAdminForm(forms.ModelForm):
-    segment = GenericModelChoiceField(querysets=lambda: [ct.model_class().objects.all() for ct in set(segment_cts())])
+    segment = GenericModelChoiceField(querysets=lambda: [ct.model_class().objects.all() for ct in set(segment_cts())], required=False)
 
     def clean(self):
         cleaned_data = super().clean()

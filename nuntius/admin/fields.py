@@ -2,6 +2,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError, ImproperlyConfigured, ObjectDoesNotExist
 from django import forms
 from django.forms import ChoiceField, Field
+from django.utils.translation import gettext as _
 
 
 class GenericModelChoiceIterator:
@@ -31,7 +32,7 @@ class GenericModelChoiceIterator:
 class GenericModelChoiceField(forms.ModelChoiceField):
     iterator = GenericModelChoiceIterator
 
-    def __init__(self, querysets, empty_label="---------",
+    def __init__(self, querysets, empty_label=_("Send to everyone"),
                  required=True, widget=None, label=None, initial=None,
                  help_text='', limit_choices_to=None,
                  **kwargs):

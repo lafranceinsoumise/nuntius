@@ -62,8 +62,8 @@ class Campaign(models.Model):
     message_content_html = fields.TextField(_("Message content (HTML)"), blank=True)
     message_content_text = fields.TextField(_("Message content (text)"))
 
-    segment_content_type = models.ForeignKey(ContentType, on_delete=models.PROTECT, limit_choices_to=segment_cts_q)
-    segment_id = models.CharField(max_length=255)
+    segment_content_type = models.ForeignKey(ContentType, on_delete=models.PROTECT, limit_choices_to=segment_cts_q, null=True)
+    segment_id = models.CharField(max_length=255, null=True)
     segment = EditableGenericForeignKey('segment_content_type', 'segment_id')
 
     status = fields.IntegerField(choices=STATUS_CHOICES, default=STATUS_WAITING)

@@ -2,6 +2,8 @@ import re
 from smtplib import SMTPServerDisconnected, SMTPRecipientsRefused, SMTPSenderRefused
 from time import sleep
 
+from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core import mail
 from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
@@ -24,7 +26,12 @@ def send_campaign(campaign_pk):
     campaign.status = Campaign.STATUS_SENDING
     campaign.save()
 
-    queryset = campaign.segment.get_subscribers_queryset().exclude(campaignsentevent__campaign=campaign)
+    if campaign.segment is None:
+        model = settings.NUNTIUS_SUBSCRIBER_MODEL
+        model_class = ContentType.objects.get(app_label=model.split('.')[0], model=model.split('.')[1].lower()).model_class()
+        queryset = model_class.objects.all()
+    else:
+        queryset = campaign.segment.get_subscribers_queryset().exclude(campaignsentevent__campaign=campaign)
 
     try:
         with mail.get_connection() as connection:

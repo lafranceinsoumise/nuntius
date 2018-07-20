@@ -3,7 +3,7 @@ from django.test import TestCase
 
 from nuntius.models import Campaign, BaseSubscriber
 from nuntius.tasks import send_campaign
-from tests.models import TestSegment
+from tests.models import TestSegment, TestSubscriber
 
 
 class SendingTestCase(TestCase):
@@ -18,6 +18,13 @@ class SendingTestCase(TestCase):
         send_campaign(campaign.pk)
 
         self.assertEqual(segment.get_subscribers_queryset().count(), len(mail.outbox), campaign.get_sent_count())
+
+    def test_send_campaign_without_segment(self):
+        campaign = Campaign.objects.create()
+        send_campaign(campaign.pk)
+
+        self.assertEqual(TestSubscriber.objects.filter(subscriber_status=BaseSubscriber.STATUS_SUBSCRIBED).count(),
+                         len(mail.outbox), campaign.get_sent_count())
 
     def test_send_only_to_subscribed(self):
         segment = TestSegment.objects.get(id="all_status")
