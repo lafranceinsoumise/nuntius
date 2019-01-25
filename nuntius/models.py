@@ -195,18 +195,12 @@ class CampaignSentEvent(models.Model):
     RESULT_COMPLAINED = "C"
     RESULT_BLOCKED = "BL"
     RESULT_CHOICES = (
-        RESULT_PENDING,
-        _("Sending"),
-        RESULT_PENDING,
-        _("Refused by server"),
-        RESULT_OK,
-        _("Sent"),
-        RESULT_BOUNCED,
-        _("Bounced"),
-        RESULT_COMPLAINED,
-        _("Complained"),
-        RESULT_BOUNCED,
-        _("Bounced"),
+        (RESULT_PENDING, _("Sending")),
+        (RESULT_REFUSED, _("Refused by server")),
+        (RESULT_OK, _("Sent")),
+        (RESULT_BOUNCED, _("Bounced")),
+        (RESULT_COMPLAINED, _("Complained")),
+        (RESULT_BLOCKED, _("Blocked")),
     )
 
     subscriber = models.ForeignKey(
@@ -216,11 +210,17 @@ class CampaignSentEvent(models.Model):
         null=True,
         blank=True,
     )
-    email = models.EmailField(_("Email adress at event time"))
+    email = models.EmailField(_("Email address at event time"))
     campaign = models.ForeignKey("Campaign", models.CASCADE, _("Campaign"))
     datetime = models.DateTimeField(auto_now_add=True)
     result = models.CharField(
-        _("Operation result"), max_length=2, default=RESULT_PENDING
+        _("Operation result"),
+        max_length=2,
+        default=RESULT_PENDING,
+        choices=RESULT_CHOICES,
+    )
+    esp_message_id = models.CharField(
+        _("ID given by the sending server"), unique=True, max_length=255, null=True
     )
 
     class Meta:

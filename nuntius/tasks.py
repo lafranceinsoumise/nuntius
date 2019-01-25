@@ -12,6 +12,13 @@ from django.template import Template, Context
 from nuntius.celery import nuntius_celery_app
 from nuntius.models import Campaign, BaseSubscriber, CampaignSentEvent
 
+try:
+    from anymail.exceptions import AnymailRecipientsRefused
+except:
+
+    class AnymailRecipientsRefused(BaseException):
+        pass
+
 
 def replace_vars(string, data):
     var_regex = re.compile(r"\[([-a-zA-Z_]+)\]")
@@ -85,7 +92,20 @@ def send_campaign(campaign_pk):
                         )
                         try:
                             message.send()
-                            event.result = CampaignSentEvent.RESULT_OK
+                            if hasattr(message, "anymail_status"):
+                                if message.anymail_status.recipients[email].status in [
+                                    "invalid",
+                                    "rejected",
+                                    "failed",
+                                ]:
+                                    event.result = CampaignSentEvent.RESULT_REFUSED
+                                else:
+                                    event.result = CampaignSentEvent.RESULT_OK
+                                event.esp_message_id = message.anymail_status.recipients[
+                                    email
+                                ].message_id
+                            else:
+                                event.result = CampaignSentEvent.RESULT_OK
                             event.save()
                         except SMTPServerDisconnected as e:
                             if retries == 0:
@@ -98,7 +118,7 @@ def send_campaign(campaign_pk):
 
                             connection.open()
                             send_subscriber(subscriber, retries=retries - 1)
-                        except SMTPRecipientsRefused:
+                        except (SMTPRecipientsRefused, AnymailRecipientsRefused):
                             event.result = CampaignSentEvent.RESULT_BLOCKED
                             event.save()
 

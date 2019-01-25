@@ -5,11 +5,14 @@ name = "pypi"
 
 [dev-packages]
 tqdm = "*"
+mysqlclient = "*"
 
 [packages]
 django = "*"
 celery = "*"
 pillow = "*"
+django-anymail = "*"
+django-stdimage = "*"
 
 [requires]
 python_version = "3.6"

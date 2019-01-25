@@ -17,7 +17,3 @@ class SimpleSubscriberTestCase(TestCase):
         self.assertEqual(
             subscriber.get_subscriber_status(), BaseSubscriber.STATUS_SUBSCRIBED
         )
-        subscriber.set_subscriber_status(BaseSubscriber.STATUS_UNSUBSCRIBED)
-        self.assertEqual(
-            subscriber.get_subscriber_status(), BaseSubscriber.STATUS_UNSUBSCRIBED
-        )

@@ -42,46 +42,14 @@ Celery is used to queue and send emails. Nuntius must have its own celery worker
         path('nuntius/', include('nuntius.urls')),
     ````
 3. Edit or create your subscriber model so it works with Nuntius.
-   You must implement all the method from `nuntius.models.BaseSubscriber`.
-   An easy way to do this is to extend `BaseSubscriber` and to have a
+   You must implement all the methods from
+   [`nuntius.models.BaseSubscriber`](https://github.com/lafranceinsoumise/nuntius/blob/master/nuntius/models.py#L142).
+   An easy way to do this is to extend `BaseSubscriber` and to create a
    `subscriber_status` `IntegerField` and an `email` `EmailField`, but
-   you can implement the methods the way you want.
-   
-   Here is the `BaseSubscriber` code as documentation :
-   
-    ````python
-    # nuntius.models.BaseSubscriber
-
-    class BaseSubscriber:
-        STATUS_SUBSCRIBED = 1
-        STATUS_UNSUBSCRIBED = 2
-        STATUS_BOUNCED = 3
-        STATUS_COMPLAINED = 4
-        STATUS_CHOICES = (
-            (STATUS_SUBSCRIBED, _("Subscribed")),
-            (STATUS_UNSUBSCRIBED, _("Unsubscribed")),
-            (STATUS_BOUNCED, _("Bounced")),
-            (STATUS_COMPLAINED, _("Complained"))
-        )
-
-        def get_subscriber_status(self):
-            if hasattr(self, 'subscriber_status'):
-                return self.subscriber_status
-            raise NotImplementedError()
-
-        def get_subscriber_email(self):
-            if hasattr(self, 'email'):
-                return self.email
-
-            raise NotImplementedError()
-
-        def get_subscriber_data(self):
-            return {
-                'email': self.email
-            }
-    ````
+   you can implement the methods the way you want, using Nuntius `BaseSubscriber`
+   as documentation.
     
-    Here is an example of a subscriber model you can implement :
+    Here is the most basic implementation you can do :
     
     ````python
     # myapp.models.MySubscriberModel
@@ -112,11 +80,13 @@ and added to you admin site.
 
 ## Advanced usage
 
+### List segments
+
 If you want to have more control on your recipients, you can create
 segment models.
 
 One example of segment is a simple model which holds a Many-to-Many relation
-to subscribers. In this case, the segment can be considered as a list.
+to subscribers.
 
 Another example is a segment model which filters subscribers depending on
 the date of their last login :
@@ -148,6 +118,25 @@ class LastLoginDateSegment(BaseSegment, models.Model):
 * `get_subscribers_count` is only there for convenience in the admin panel, it does not
     have to be accurate. If you want to have it accurate, you should however take
     your subscribers status into account.
+
+Then, add your segment model(s) to Nuntius settings :
+````python
+NUNTIUS_SEGMENT_MODELS = ['myapp.lastlogindatesegment']
+````
+
+### ESP and Webhooks
+
+Maintaining your own SMTP server to send your newsletter is probably
+a bad idea if you have more than a few subscribers. You can use
+[Anymail](https://github.com/anymail/django-anymail) along with Nuntius
+in order to use an email service provider. Anymail supports
+a lot of ESP, like Amazon SES, Mailgun, Mailjet, Postmark, SendGrid,
+SendinBlue, or SparkPost.
+
+Refer to the steps in [Anymail 1-2-3](https://anymail.readthedocs.io/en/stable/quickstart/)
+to install Anymail. If you want to configure Anymail just for Nuntius and keep
+the default email backend for other usage, you can use the setting `NUNTIUS_EMAIL_BACKEND`
+rather than the default `EMAIL_BACKEND`.
 
 ## License
 
