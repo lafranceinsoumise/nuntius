@@ -22,11 +22,14 @@ from nuntius.tasks import send_campaign
 
 
 class CampaignAdminForm(forms.ModelForm):
-    segment = GenericModelChoiceField(querysets=lambda: [ct.model_class().objects.all() for ct in set(segment_cts())], required=False)
+    segment = GenericModelChoiceField(
+        querysets=lambda: [ct.model_class().objects.all() for ct in set(segment_cts())],
+        required=False,
+    )
 
     def clean(self):
         cleaned_data = super().clean()
-        segment = cleaned_data.get('segment')
+        segment = cleaned_data.get("segment")
 
         if segment:
             self.instance.segment = segment
@@ -34,21 +37,21 @@ class CampaignAdminForm(forms.ModelForm):
         return cleaned_data
 
     class Meta:
-        exclude = ('segment_content_type', 'segment_id')
+        exclude = ("segment_content_type", "segment_id")
 
 
 class MosaicoImageUploadView(CreateView):
     model = MosaicoImage
-    fields = ('file', )
+    fields = ("file",)
 
     def image_dict(self, image):
         return {
-            'name': image.file.name,
-            'size': image.file.size,
-            'url': self.request.build_absolute_uri(image.file.url),
-            'deleteUrl': self.request.build_absolute_uri(image.file.url),
-            'deleteType': 'DELETE',
-            'thumbnailUrl': self.request.build_absolute_uri(image.file.thumbnail.url),
+            "name": image.file.name,
+            "size": image.file.size,
+            "url": self.request.build_absolute_uri(image.file.url),
+            "deleteUrl": self.request.build_absolute_uri(image.file.url),
+            "deleteType": "DELETE",
+            "thumbnailUrl": self.request.build_absolute_uri(image.file.thumbnail.url),
         }
 
     def form_invalid(self, form):
@@ -57,32 +60,74 @@ class MosaicoImageUploadView(CreateView):
     def form_valid(self, form):
         self.object = form.save()
 
-        return JsonResponse({'files': [self.image_dict(self.object)]})
+        return JsonResponse({"files": [self.image_dict(self.object)]})
 
     def get(self, *args, **kwargs):
-        return JsonResponse({'files': [self.image_dict(image) for image in MosaicoImage.objects.all()]})
+        return JsonResponse(
+            {"files": [self.image_dict(image) for image in MosaicoImage.objects.all()]}
+        )
 
 
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
     fieldsets = (
-        (None, {
-            'fields': ('name', 'message_from_name', 'message_from_email', 'message_reply_to_name',
-                       'message_reply_to_email', 'message_subject')
-        }),
-        (_("Content"), {
-            'fields': ('mosaico_buttons', 'message_content_text')
-        }),
-        (_("Sending"), {
-            'fields': ('segment', 'segment_subscribers', 'status', 'send_button', 'sent_to', 'sent_ok',
-                       'sent_bounced', 'sent_complained', 'sent_blocked', 'task_uuid', 'task_state')
-        })
+        (
+            None,
+            {
+                "fields": (
+                    "name",
+                    "message_from_name",
+                    "message_from_email",
+                    "message_reply_to_name",
+                    "message_reply_to_email",
+                    "message_subject",
+                )
+            },
+        ),
+        (_("Content"), {"fields": ("mosaico_buttons", "message_content_text")}),
+        (
+            _("Sending"),
+            {
+                "fields": (
+                    "segment",
+                    "segment_subscribers",
+                    "status",
+                    "send_button",
+                    "sent_to",
+                    "sent_ok",
+                    "sent_bounced",
+                    "sent_complained",
+                    "sent_blocked",
+                    "task_uuid",
+                    "task_state",
+                )
+            },
+        ),
     )
-    list_display = ('name', 'message_subject', 'segment', 'segment_subscribers', 'status', 'send_button', 'sent_to')
-    list_filter = ('status',)
+    list_display = (
+        "name",
+        "message_subject",
+        "segment",
+        "segment_subscribers",
+        "status",
+        "send_button",
+        "sent_to",
+    )
+    list_filter = ("status",)
     form = CampaignAdminForm
-    readonly_fields = ('segment_subscribers', 'status', 'send_button', 'mosaico_buttons', 'sent_to', 'sent_ok', 'sent_bounced',
-                       'sent_complained', 'sent_blocked', 'task_uuid', 'task_state')
+    readonly_fields = (
+        "segment_subscribers",
+        "status",
+        "send_button",
+        "mosaico_buttons",
+        "sent_to",
+        "sent_ok",
+        "sent_bounced",
+        "sent_complained",
+        "sent_blocked",
+        "task_uuid",
+        "task_state",
+    )
 
     def get_object(self, request, object_id, from_field=None):
         object = super().get_object(request, object_id, from_field=from_field)
@@ -93,10 +138,12 @@ class CampaignAdmin(admin.ModelAdmin):
     def segment_subscribers(self, instance):
         if instance.segment is None:
             model = settings.NUNTIUS_SUBSCRIBER_MODEL
-            model_class = ContentType.objects.get(app_label=model.split('.')[0],
-                                                  model=model.split('.')[1].lower()).model_class()
+            model_class = ContentType.objects.get(
+                app_label=model.split(".")[0], model=model.split(".")[1].lower()
+            ).model_class()
             return model_class.objects.count()
         return instance.segment.get_subscribers_count()
+
     segment_subscribers.short_description = _("Subscribers")
 
     def sent_to(self, instance):
@@ -104,18 +151,22 @@ class CampaignAdmin(admin.ModelAdmin):
 
     def sent_ok(self, instance):
         return instance.get_ok_count()
+
     sent_ok.short_description = _("Ok")
 
     def sent_bounced(self, instance):
         return instance.get_bounced_count()
+
     sent_bounced.short_description = _("Bounced")
 
     def sent_complained(self, instance):
         return instance.get_complained_count()
+
     sent_complained.short_description = _("Complained")
 
     def sent_blocked(self, instance):
         return instance.get_blocked_count()
+
     sent_blocked.short_description = _("Blocked")
 
     def task_state(self, instance):
@@ -123,7 +174,7 @@ class CampaignAdmin(admin.ModelAdmin):
         if task is not None:
             return task[0]
         if instance.task_uuid is None:
-            return '-'
+            return "-"
 
         return _("Connection to celery failed")
 
@@ -131,61 +182,93 @@ class CampaignAdmin(admin.ModelAdmin):
 
     def send_button(self, instance):
         if instance.pk is None:
-            return mark_safe('-')
+            return mark_safe("-")
         if instance.status == Campaign.STATUS_SENDING:
             return format_html(
-                '<a href="{}" class="button">' + _("Pause") + '</a>',
-                reverse('admin:nuntius_campaign_pause', args=[instance.pk])
+                '<a href="{}" class="button">' + _("Pause") + "</a>",
+                reverse("admin:nuntius_campaign_pause", args=[instance.pk]),
             )
 
         return format_html(
-            '<a href="{}" class="button">' + _("Send") + '</a>',
-            reverse('admin:nuntius_campaign_send', args=[instance.pk])
+            '<a href="{}" class="button">' + _("Send") + "</a>",
+            reverse("admin:nuntius_campaign_send", args=[instance.pk]),
         )
+
     send_button.short_description = _("Send")
 
     def mosaico_buttons(self, instance):
         if instance.pk is None:
-            return mark_safe('-')
+            return mark_safe("-")
 
         return format_html(
-            '<a href="{}" class="button">' + _("Access the editor") + '</a> '\
-            '<a href="{}" class="button">' + _("Preview result") + '</a>',
-            reverse('admin:nuntius_campaign_mosaico', args=[instance.pk]) + '#' + static('nuntius/templates/versafix-1/template-versafix-1.html'),
-            reverse('admin:nuntius_campaign_mosaico_preview', args=[instance.pk])
+            '<a href="{}" class="button">' + _("Access the editor") + "</a> "
+            '<a href="{}" class="button">' + _("Preview result") + "</a>",
+            reverse("admin:nuntius_campaign_mosaico", args=[instance.pk])
+            + "#"
+            + static("nuntius/templates/versafix-1/template-versafix-1.html"),
+            reverse("admin:nuntius_campaign_mosaico_preview", args=[instance.pk]),
         )
+
     mosaico_buttons.short_description = _("HTML content")
 
     def get_urls(self):
         return [
-            path('<pk>/send/', self.admin_site.admin_view(self.send_view), name='nuntius_campaign_send'),
-            path('<pk>/pause/', self.admin_site.admin_view(self.pause_view), name='nuntius_campaign_pause'),
-            path('<pk>/mosaico/', ensure_csrf_cookie(self.admin_site.admin_view(self.mosaico_view)), name='nuntius_campaign_mosaico'),
-            path('<pk>/mosaico/preview/', self.admin_site.admin_view(self.mosaico_preview), name='nuntius_campaign_mosaico_preview'),
-            path('<pk>/mosaico/save/', self.admin_site.admin_view(self.mosaico_save_view), name='nuntius_campaign_mosaico_save'),
-            path('<pk>/mosaico/data/', self.admin_site.admin_view(self.mosaico_load_view), name='nuntius_campaign_mosaico_load'),
-            path('<pk>/mosaico/upload/', self.admin_site.admin_view(MosaicoImageUploadView.as_view()), name='nuntius_campaign_mosaico_image_upload'),
+            path(
+                "<pk>/send/",
+                self.admin_site.admin_view(self.send_view),
+                name="nuntius_campaign_send",
+            ),
+            path(
+                "<pk>/pause/",
+                self.admin_site.admin_view(self.pause_view),
+                name="nuntius_campaign_pause",
+            ),
+            path(
+                "<pk>/mosaico/",
+                ensure_csrf_cookie(self.admin_site.admin_view(self.mosaico_view)),
+                name="nuntius_campaign_mosaico",
+            ),
+            path(
+                "<pk>/mosaico/preview/",
+                self.admin_site.admin_view(self.mosaico_preview),
+                name="nuntius_campaign_mosaico_preview",
+            ),
+            path(
+                "<pk>/mosaico/save/",
+                self.admin_site.admin_view(self.mosaico_save_view),
+                name="nuntius_campaign_mosaico_save",
+            ),
+            path(
+                "<pk>/mosaico/data/",
+                self.admin_site.admin_view(self.mosaico_load_view),
+                name="nuntius_campaign_mosaico_load",
+            ),
+            path(
+                "<pk>/mosaico/upload/",
+                self.admin_site.admin_view(MosaicoImageUploadView.as_view()),
+                name="nuntius_campaign_mosaico_image_upload",
+            ),
         ] + super().get_urls()
 
     def send_view(self, request, pk):
         campaign = Campaign.objects.get(pk=pk)
         if campaign.get_task_and_update_status() is not None:
-            return redirect(reverse('admin:nuntius_campaign_change', args=[pk]))
+            return redirect(reverse("admin:nuntius_campaign_change", args=[pk]))
 
         r = send_campaign.delay(pk)
         campaign.task_uuid = r.id
         campaign.save()
 
-        return redirect(reverse('admin:nuntius_campaign_change', args=[pk]))
+        return redirect(reverse("admin:nuntius_campaign_change", args=[pk]))
 
     def pause_view(self, request, pk):
         campaign = Campaign.objects.get(pk=pk)
         if campaign.get_task_and_update_status() is None:
-            return redirect(reverse('admin:nuntius_campaign_change', args=[pk]))
+            return redirect(reverse("admin:nuntius_campaign_change", args=[pk]))
 
         nuntius_celery_app.control.revoke(str(campaign.task_uuid), terminate=True)
 
-        return redirect(reverse('admin:nuntius_campaign_change', args=[pk]))
+        return redirect(reverse("admin:nuntius_campaign_change", args=[pk]))
 
     def mosaico_view(self, request, pk):
         return TemplateResponse(request=request, template="nuntius/editor.html")
@@ -201,19 +284,18 @@ class CampaignAdmin(admin.ModelAdmin):
         return JsonResponse(json.loads(campaign.message_mosaico_data))
 
     def mosaico_save_view(self, request, pk):
-        if request.method != 'POST':
+        if request.method != "POST":
             return HttpResponseBadRequest()
 
-        html = request.POST.get('html')
-        metadata = request.POST.get('metadata')
-        content = request.POST.get('content')
+        html = request.POST.get("html")
+        metadata = request.POST.get("metadata")
+        content = request.POST.get("content")
 
         campaign = Campaign.objects.get(pk=pk)
         campaign.message_content_html = html
-        campaign.message_mosaico_data = json.dumps({
-            'metadata': json.loads(metadata),
-            'content': json.loads(content)
-        })
+        campaign.message_mosaico_data = json.dumps(
+            {"metadata": json.loads(metadata), "content": json.loads(content)}
+        )
         campaign.save()
 
         return HttpResponse()

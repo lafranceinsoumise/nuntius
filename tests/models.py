@@ -14,7 +14,11 @@ class TestSegment(BaseSegment, models.Model):
         return TestSubscriber.objects.filter(segments__id=self.id)
 
     def get_subscribers_count(self):
-        return self.get_subscribers_queryset().filter(subscriber_status=BaseSubscriber.STATUS_SUBSCRIBED).count()
+        return (
+            self.get_subscribers_queryset()
+            .filter(subscriber_status=BaseSubscriber.STATUS_SUBSCRIBED)
+            .count()
+        )
 
     def __str__(self):
         return self.get_display_name()
@@ -24,4 +28,4 @@ class TestSubscriber(BaseSubscriber, models.Model):
     email = fields.EmailField(max_length=255)
     subscriber_status = fields.IntegerField(choices=BaseSubscriber.STATUS_CHOICES)
 
-    segments = models.ManyToManyField('TestSegment')
+    segments = models.ManyToManyField("TestSegment")

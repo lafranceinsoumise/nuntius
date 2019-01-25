@@ -7,22 +7,28 @@ import stdimage.models
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('nuntius', '0001_initial'),
-    ]
+    dependencies = [("nuntius", "0001_initial")]
 
     operations = [
         migrations.CreateModel(
-            name='MosaicoImage',
+            name="MosaicoImage",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('file', stdimage.models.StdImageField(upload_to='mosaico')),
-                ('created', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("file", stdimage.models.StdImageField(upload_to="mosaico")),
+                ("created", models.DateTimeField(auto_now_add=True)),
             ],
         ),
         migrations.AddField(
-            model_name='campaign',
-            name='message_mosaico_data',
-            field=models.TextField(blank=True, verbose_name='Mosaico data'),
-        )
+            model_name="campaign",
+            name="message_mosaico_data",
+            field=models.TextField(blank=True, verbose_name="Mosaico data"),
+        ),
     ]

@@ -5,7 +5,7 @@ from tests.models import TestSubscriber, TestSegment
 
 @admin.register(TestSubscriber)
 class TestSubscriberAdmin(admin.ModelAdmin):
-    list_display = ('email', 'subscriber_status')
+    list_display = ("email", "subscriber_status")
     pass
 
 

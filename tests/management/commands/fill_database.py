@@ -8,19 +8,22 @@ from tests.models import TestSubscriber, TestSegment
 
 
 class Command(BaseCommand):
-    help = 'Loads plenty of fake emails for benchmark'
+    help = "Loads plenty of fake emails for benchmark"
 
     def handle(self, *args, **options):
-        (segment, created) = TestSegment.objects.get_or_create(id='fake_emails')
-        fake_emails = TestSubscriber.objects.filter(email__startswith='fake_email')
+        (segment, created) = TestSegment.objects.get_or_create(id="fake_emails")
+        fake_emails = TestSubscriber.objects.filter(email__startswith="fake_email")
         fake_emails.all().delete()
 
         batch_size = 1000
 
-        objs = (TestSubscriber(
-                email='fake_email' + str(i) + '@example.com',
+        objs = (
+            TestSubscriber(
+                email="fake_email" + str(i) + "@example.com",
                 subscriber_status=BaseSubscriber.STATUS_SUBSCRIBED,
-        ) for i in range(100000))
+            )
+            for i in range(100000)
+        )
 
         with tqdm(total=100000) as pbar:
             while True:
@@ -33,10 +36,10 @@ class Command(BaseCommand):
         Relation = TestSubscriber.segments.through
         Relation.objects.filter(testsegment=segment).delete()
 
-        objs = (Relation(
-            testsegment=segment,
-            testsubscriber=test_subscriber
-        ) for test_subscriber in fake_emails.all())
+        objs = (
+            Relation(testsegment=segment, testsubscriber=test_subscriber)
+            for test_subscriber in fake_emails.all()
+        )
 
         with tqdm(total=100000) as pbar:
             while True:
@@ -45,5 +48,3 @@ class Command(BaseCommand):
                     break
                 Relation.objects.bulk_create(batch, batch_size)
                 pbar.update(batch_size)
-
-

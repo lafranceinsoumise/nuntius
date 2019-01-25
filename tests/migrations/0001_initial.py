@@ -8,24 +8,46 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='TestSegment',
+            name="TestSegment",
             fields=[
-                ('id', models.CharField(max_length=255, primary_key=True, serialize=False, unique=True)),
+                (
+                    "id",
+                    models.CharField(
+                        max_length=255, primary_key=True, serialize=False, unique=True
+                    ),
+                )
             ],
             bases=(nuntius.models.BaseSegment, models.Model),
         ),
         migrations.CreateModel(
-            name='TestSubscriber',
+            name="TestSubscriber",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('email', models.EmailField(max_length=255)),
-                ('subscriber_status', models.IntegerField(choices=[(1, 'Subscribed'), (2, 'Unsubscribed'), (3, 'Bounced'), (4, 'Complained')])),
-                ('segments', models.ManyToManyField(to='tests.TestSegment')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("email", models.EmailField(max_length=255)),
+                (
+                    "subscriber_status",
+                    models.IntegerField(
+                        choices=[
+                            (1, "Subscribed"),
+                            (2, "Unsubscribed"),
+                            (3, "Bounced"),
+                            (4, "Complained"),
+                        ]
+                    ),
+                ),
+                ("segments", models.ManyToManyField(to="tests.TestSegment")),
             ],
             bases=(nuntius.models.BaseSubscriber, models.Model),
         ),
