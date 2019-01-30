@@ -4,6 +4,7 @@ from celery.app.control import Inspect
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import fields, Q
 from django.utils.translation import gettext as _
@@ -158,6 +159,16 @@ class BaseSegment:
 
     def get_subscribers_count(self):
         raise NotImplementedError
+
+
+class BaseSubscriberManager(models.Manager):
+    def set_subscriber_status(self, email_address, status):
+        try:
+            subscriber = self.get(email=email_address)
+        except ObjectDoesNotExist:
+            return
+        subscriber.subscriber_status = status
+        subscriber.save(update_fields=["subscriber_status"])
 
 
 class BaseSubscriber:

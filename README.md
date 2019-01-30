@@ -138,6 +138,23 @@ to install Anymail. If you want to configure Anymail just for Nuntius and keep
 the default email backend for other usage, you can use the setting `NUNTIUS_EMAIL_BACKEND`
 rather than the default `EMAIL_BACKEND`.
 
+In addition, configuring Nuntius with Anymail will allow you to use ESP tracking features
+and to track status of your email once it is sent.
+
+#### Webhooks
+
+Configuring webhhoks allows Nuntius to track email status and to
+give you statistics on campaign, as well as updating subscriber status
+when they bounce.
+
+1. Configure email tracking as described in
+[Anymail documentation](https://anymail.readthedocs.io/en/stable/installation/#configuring-tracking-and-inbound-webhooks).
+2. Implement the method `set_subscriber_status(self, email, status)` on your subscriber
+model manager.
+
+Nuntius will automatically listen to Anymail signals and call this method approprietly.
+
+
 ## License
 
 Copyright is owned by Guillaume Royer and Arthur Cheysson.

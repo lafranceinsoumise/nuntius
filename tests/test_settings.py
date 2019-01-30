@@ -57,3 +57,5 @@ MEDIA_ROOT = "media"
 
 EMAIL_HOST = "localhost"
 EMAIL_PORT = "1025"
+
+ANYMAIL_WEBHOOK_SECRET = "test:test"

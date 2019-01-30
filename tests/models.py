@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import fields
 
-from nuntius.models import BaseSubscriber, BaseSegment
+from nuntius.models import BaseSubscriber, BaseSegment, BaseSubscriberManager
 
 
 class TestSegment(BaseSegment, models.Model):
@@ -25,6 +25,7 @@ class TestSegment(BaseSegment, models.Model):
 
 
 class TestSubscriber(BaseSubscriber, models.Model):
+    objects = BaseSubscriberManager()
     email = fields.EmailField(max_length=255)
     subscriber_status = fields.IntegerField(choices=BaseSubscriber.STATUS_CHOICES)
 
