@@ -281,7 +281,7 @@ class CampaignAdmin(admin.ModelAdmin):
     def mosaico_load_view(self, request, pk):
         campaign = Campaign.objects.get(pk=pk)
 
-        return JsonResponse(json.loads(campaign.message_mosaico_data))
+        return JsonResponse(json.loads(campaign.message_mosaico_data or "{}"))
 
     def mosaico_save_view(self, request, pk):
         if request.method != "POST":

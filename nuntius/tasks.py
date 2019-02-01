@@ -10,7 +10,12 @@ from django.db import transaction
 from django.template import Template, Context
 
 from nuntius.celery import nuntius_celery_app
-from nuntius.models import Campaign, BaseSubscriber, CampaignSentEvent
+from nuntius.models import (
+    Campaign,
+    BaseSubscriber,
+    CampaignSentEvent,
+    CampaignSentStatusType,
+)
 
 try:
     from anymail.exceptions import AnymailRecipientsRefused
@@ -61,7 +66,7 @@ def send_campaign(campaign_pk):
                         campaign=campaign, subscriber=subscriber, email=email
                     )
 
-                    if event.result != CampaignSentEvent.RESULT_PENDING:
+                    if event.result != CampaignSentStatusType.PENDING:
                         return
 
                     with transaction.atomic():
@@ -69,7 +74,7 @@ def send_campaign(campaign_pk):
                             subscriber=subscriber, campaign=campaign
                         )
 
-                        if event.result != CampaignSentEvent.RESULT_PENDING:
+                        if event.result != CampaignSentStatusType.PENDING:
                             return
 
                         subscriber_data = subscriber.get_subscriber_data()
@@ -98,14 +103,14 @@ def send_campaign(campaign_pk):
                                     "rejected",
                                     "failed",
                                 ]:
-                                    event.result = CampaignSentEvent.RESULT_REFUSED
+                                    event.result = CampaignSentStatusType.REJECTED
                                 else:
-                                    event.result = CampaignSentEvent.RESULT_OK
+                                    event.result = CampaignSentStatusType.UNKNOWN
                                 event.esp_message_id = message.anymail_status.recipients[
                                     email
                                 ].message_id
                             else:
-                                event.result = CampaignSentEvent.RESULT_OK
+                                event.result = CampaignSentStatusType.UNKNOWN
                             event.save()
                         except SMTPServerDisconnected as e:
                             if retries == 0:
@@ -119,7 +124,7 @@ def send_campaign(campaign_pk):
                             connection.open()
                             send_subscriber(subscriber, retries=retries - 1)
                         except (SMTPRecipientsRefused, AnymailRecipientsRefused):
-                            event.result = CampaignSentEvent.RESULT_BLOCKED
+                            event.result = CampaignSentStatusType.BLOCKED
                             event.save()
 
                 send_subscriber(subscriber)

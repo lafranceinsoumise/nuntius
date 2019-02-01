@@ -117,35 +117,35 @@ class Campaign(models.Model):
     def get_sent_count(self):
         return (
             CampaignSentEvent.objects.filter(campaign=self)
-            .exclude(result=CampaignSentEvent.RESULT_PENDING)
+            .exclude(result=CampaignSentStatusType.PENDING)
             .count()
         )
 
     def get_ok_count(self):
         return (
             CampaignSentEvent.objects.filter(campaign=self)
-            .filter(result=CampaignSentEvent.RESULT_OK)
+            .filter(result=CampaignSentStatusType.OK)
             .count()
         )
 
     def get_bounced_count(self):
         return (
             CampaignSentEvent.objects.filter(campaign=self)
-            .filter(result=CampaignSentEvent.RESULT_BOUNCED)
+            .filter(result=CampaignSentStatusType.BOUNCED)
             .count()
         )
 
     def get_complained_count(self):
         return (
             CampaignSentEvent.objects.filter(campaign=self)
-            .filter(result=CampaignSentEvent.RESULT_COMPLAINED)
+            .filter(result=CampaignSentStatusType.COMPLAINED)
             .count()
         )
 
     def get_blocked_count(self):
         return (
             CampaignSentEvent.objects.filter(campaign=self)
-            .filter(result=CampaignSentEvent.RESULT_BLOCKED)
+            .filter(result=CampaignSentStatusType.BLOCKED)
             .count()
         )
 
@@ -198,22 +198,31 @@ class BaseSubscriber:
         return {"email": self.email}
 
 
-class CampaignSentEvent(models.Model):
-    RESULT_PENDING = "P"
-    RESULT_REFUSED = "RE"
-    RESULT_OK = "OK"
-    RESULT_BOUNCED = "BC"
-    RESULT_COMPLAINED = "C"
-    RESULT_BLOCKED = "BL"
-    RESULT_CHOICES = (
-        (RESULT_PENDING, _("Sending")),
-        (RESULT_REFUSED, _("Refused by server")),
-        (RESULT_OK, _("Sent")),
-        (RESULT_BOUNCED, _("Bounced")),
-        (RESULT_COMPLAINED, _("Complained")),
-        (RESULT_BLOCKED, _("Blocked")),
+class CampaignSentStatusType:
+    PENDING = "P"
+    UNKNOWN = "?"
+    REJECTED = "RE"
+    OK = "OK"
+    BOUNCED = "BC"
+    COMPLAINED = "C"
+    UNSUBSCRIBED = "U"
+    BLOCKED = "BL"
+    ERROR = "E"
+
+    CHOICES = (
+        (PENDING, _("Sending")),
+        (UNKNOWN, _("Unknown")),
+        (REJECTED, _("Rejected by server")),
+        (OK, _("Sent")),
+        (BOUNCED, _("Bounced")),
+        (COMPLAINED, _("Complained")),
+        (UNSUBSCRIBED, _("Unsubscribed")),
+        (BLOCKED, _("Blocked temporarily")),
+        (ERROR, _("Error")),
     )
 
+
+class CampaignSentEvent(models.Model):
     subscriber = models.ForeignKey(
         settings.NUNTIUS_SUBSCRIBER_MODEL,
         models.SET_NULL,
@@ -227,8 +236,8 @@ class CampaignSentEvent(models.Model):
     result = models.CharField(
         _("Operation result"),
         max_length=2,
-        default=RESULT_PENDING,
-        choices=RESULT_CHOICES,
+        default=CampaignSentStatusType.PENDING,
+        choices=CampaignSentStatusType.CHOICES,
     )
     esp_message_id = models.CharField(
         _("ID given by the sending server"), unique=True, max_length=255, null=True
