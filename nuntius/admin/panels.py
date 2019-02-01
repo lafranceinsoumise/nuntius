@@ -1,4 +1,5 @@
 import json
+import os
 
 from django.conf import settings
 from django.contrib import admin
@@ -9,7 +10,7 @@ from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.templatetags.static import static
 from django.urls import reverse, path
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -199,6 +200,23 @@ class CampaignAdmin(admin.ModelAdmin):
     def mosaico_buttons(self, instance):
         if instance.pk is None:
             return mark_safe("-")
+
+        if not instance.message_mosaico_data:
+            return format_html(
+                "<p>" + _("Create content from template:") + "</p><br>"
+            ) + format_html_join(
+                " ",
+                '<a href="{}" class="button">{}</a>',
+                (
+                    (
+                        reverse("admin:nuntius_campaign_mosaico", args=[instance.pk])
+                        + "#"
+                        + template,
+                        os.path.basename(template),
+                    )
+                    for template in settings.NUNTIUS_MOSAICO_TEMPLATES
+                ),
+            )
 
         return format_html(
             '<a href="{}" class="button">' + _("Access the editor") + "</a> "

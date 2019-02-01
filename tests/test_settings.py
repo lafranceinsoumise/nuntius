@@ -51,6 +51,9 @@ STATIC_URL = "/static/"
 NUNTIUS_SEGMENT_MODELS = ["tests.testsegment"]
 NUNTIUS_SUBSCRIBER_MODEL = "tests.TestSubscriber"
 NUNTIUS_CELERY_BROKER_URL = "redis://"
+NUNTIUS_MOSAICO_TEMPLATES = [
+    "/static/mosaico_templates/versafix-2/template-versafix-2.html"
+]
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = "media"
