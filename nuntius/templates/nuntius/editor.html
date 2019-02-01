@@ -1,0 +1,91 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=1024, initial-scale=1">
+
+    <link rel="canonical" href="http://mosaico.io" />
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+
+    <script src="{% static "nuntius/mosaico/mosaico-libs.min.js" %}"></script>
+    <script src="{% static "nuntius/mosaico/mosaico.min.js" %}"></script>
+    <script src="{% static "nuntius/js.cookie.js" %}"></script>
+    <script>
+      $(function() {
+        if (!Mosaico.isCompatible()) {
+          alert('Update your browser!');
+          return;
+        }
+
+        var csrftoken = Cookies.get('csrftoken');
+        function csrfSafeMethod(method) {
+          // these HTTP methods do not require CSRF protection
+          return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+        }
+        $.ajaxSetup({
+          beforeSend: function(xhr, settings) {
+            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+              xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            }
+          }
+        });
+
+        var basePath = window.location.href;
+        if (basePath.lastIndexOf('#') > 0) basePath = basePath.substr(0, basePath.lastIndexOf('#'));
+        if (basePath.lastIndexOf('?') > 0) basePath = basePath.substr(0, basePath.lastIndexOf('?'));
+
+        var plugins = [function(vm) {
+          // Logo path
+          vm.logoPath = '{% static "nuntius/mosaico/img/mosaico32.png" %}';
+
+          // Save command
+          var saveCmd = {
+            name: 'Save', // l10n happens in the template
+            enabled: ko.observable(true)
+          };
+          saveCmd.execute = function() {
+            saveCmd.enabled(false);
+            var post = $.post(basePath + 'save/', {
+              html: vm.exportHTML(),
+              metadata: vm.exportMetadata(),
+              content: vm.exportJSON()
+            });
+            post.fail(function() {
+              vm.notifier.error(vm.t('Unexpected error talking to server.'));
+            });
+            post.success(function(res) {
+              vm.notifier.success(vm.t('Saved!'));
+              location.href = basePath.replace('mosaico', 'change');
+            });
+            post.always(function() {
+              saveCmd.enabled(true);
+            });
+          };
+          vm.save = saveCmd;
+        }];
+
+        var config = {
+          imgProcessorBackend: '{%  url 'nuntius_mosaico_image_processor' %}',
+          fileuploadConfig: {
+            url: basePath + 'upload/',
+            paramName: 'file',
+          }
+        };
+
+        $.get(basePath + 'data/', null, function(data) {
+          if (data.metadata && data.content) {
+            config.data = data;
+          }
+          Mosaico.init(config, plugins);
+        }, 'json');
+      });
+    </script>
+    
+    <link rel="stylesheet" href="{% static "nuntius/mosaico/mosaico-libs.min.css" %}" />
+    <link rel="stylesheet" href="{% static "nuntius/mosaico/mosaico-material.min.css" %}" />
+  </head>
+  <body class="mo-standalone">
+  </body>
+</html>
