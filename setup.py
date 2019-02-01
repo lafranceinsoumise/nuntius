@@ -12,11 +12,11 @@ setup(
     version="0.1.1",
     packages=find_packages(),
     include_package_data=True,
-    license="GPLv3",  # example license
+    license="GPLv3",
     description="A model agnostic Django newsletter app integrating Mosaico.",
     long_description=README,
     url="https://github.com/lafranceinsoumise/nuntius",
-    author="Guillaume Royer",
+    author="Jill Royer",
     author_email="perso@guilro.com",
     install_requires=("celery", "pillow"),
     classifiers=[
