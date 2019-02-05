@@ -10,7 +10,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 setup(
     name="nuntius",
     version="0.2.2",
-    packages=find_packages(),
+    packages=("nuntius",),
     include_package_data=True,
     license="GPLv3",
     description="A model agnostic Django newsletter app integrating Mosaico.",
