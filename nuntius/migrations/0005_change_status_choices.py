@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
                     ("C", "Complained"),
                     ("U", "Unsubscribed"),
                     ("BL", "Blocked temporarily"),
-                    ("Eç", "Error"),
+                    ("E", "Error"),
                 ],
                 default="P",
                 max_length=2,

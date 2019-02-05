@@ -12,9 +12,9 @@ from django.template import Template, Context
 from nuntius.celery import nuntius_celery_app
 from nuntius.models import (
     Campaign,
-    BaseSubscriber,
     CampaignSentEvent,
     CampaignSentStatusType,
+    AbstractSubscriber,
 )
 
 try:
@@ -56,7 +56,7 @@ def send_campaign(campaign_pk):
                 def send_subscriber(subscriber, retries=10):
                     if (
                         subscriber.get_subscriber_status()
-                        != BaseSubscriber.STATUS_SUBSCRIBED
+                        != AbstractSubscriber.STATUS_SUBSCRIBED
                     ):
                         return
 

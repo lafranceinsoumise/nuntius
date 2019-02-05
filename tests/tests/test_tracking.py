@@ -5,10 +5,10 @@ from django.test import TestCase
 from django.urls import reverse
 
 from nuntius.models import (
-    BaseSubscriber,
     Campaign,
     CampaignSentEvent,
     CampaignSentStatusType,
+    BaseSubscriber,
 )
 from nuntius.tasks import send_campaign
 from tests.models import TestSubscriber

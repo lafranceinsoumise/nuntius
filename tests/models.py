@@ -1,7 +1,6 @@
 from django.db import models
-from django.db.models import fields
 
-from nuntius.models import BaseSubscriber, BaseSegment, BaseSubscriberManager
+from nuntius.models import BaseSubscriber, BaseSegment, AbstractSubscriber
 
 
 class TestSegment(BaseSegment, models.Model):
@@ -24,9 +23,5 @@ class TestSegment(BaseSegment, models.Model):
         return self.get_display_name()
 
 
-class TestSubscriber(BaseSubscriber, models.Model):
-    objects = BaseSubscriberManager()
-    email = fields.EmailField(max_length=255)
-    subscriber_status = fields.IntegerField(choices=BaseSubscriber.STATUS_CHOICES)
-
+class TestSubscriber(BaseSubscriber):
     segments = models.ManyToManyField("TestSegment")

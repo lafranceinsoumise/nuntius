@@ -1,8 +1,6 @@
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 
-from nuntius.models import BaseSubscriber
-
 
 def update_subscriber(email, status):
     model = settings.NUNTIUS_SUBSCRIBER_MODEL

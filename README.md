@@ -41,25 +41,26 @@ Celery is used to queue and send emails. Nuntius must have its own celery worker
     ````python
         path('nuntius/', include('nuntius.urls')),
     ````
-3. Edit or create your subscriber model so it works with Nuntius.
-   You must implement all the methods from
-   [`nuntius.models.BaseSubscriber`](https://github.com/lafranceinsoumise/nuntius/blob/master/nuntius/models.py#L142).
-   An easy way to do this is to extend `BaseSubscriber` and to create a
-   `subscriber_status` `IntegerField` and an `email` `EmailField`, but
-   you can implement the methods the way you want, using Nuntius `BaseSubscriber`
-   as documentation.
+3. Define your subscriber model so it works with Nuntius.
+   You must inherit from
+   [`nuntius.models.AbstractSubscriber`](https://github.com/lafranceinsoumise/nuntius/blob/master/nuntius/models.py#L174)
+   and implement all the necessary methods. An easy way to do this is to use directly or to extend
+   [`BaseSubscriber`](https://github.com/lafranceinsoumise/nuntius/blob/master/nuntius/models.py#L204), but
+   you can implement the methods of `AbstractSubscriber` the way you want.
     
-    Here is the most basic implementation you can do :
+    Here are the methods you must implement :
     
-    ````python
-    # myapp.models.MySubscriberModel
-    from nuntius.models import BaseSubscriber
-    from django.db import models
-    from django.db.models import fields
-    
-    class MySubscriberModel(BaseSubscriber, models.Model):
-       email = fields.EmailField(max_length=255)
-       subscriber_status = fields.IntegerField(choices=BaseSubscriber.STATUS_CHOICES)
+    * `get_subscriber_status()`
+        must return one of `AbstractSubscriber.STATUS_CHOICES`. You can also simply
+        define a `subscriber_status` attribute.
+        
+    * `get_subscriber_email()`
+        must return a unique email address for the subscriber. You can also simply
+        define an `email` attribute.
+
+    * `get_subscriber_data()`
+        must return the dictionnary of values which can be used as substitution in
+        the emails. Default is `{"email": self.get_subscriber_email()}`.
  
 4. Set the two required settings in your `settings.py`
     ````python

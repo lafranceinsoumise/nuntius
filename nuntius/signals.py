@@ -1,7 +1,7 @@
 from django.dispatch import receiver
 
 from nuntius.actions import update_subscriber
-from nuntius.models import CampaignSentEvent, CampaignSentStatusType, BaseSubscriber
+from nuntius.models import CampaignSentEvent, CampaignSentStatusType, AbstractSubscriber
 
 try:
     from anymail.signals import tracking, EventType
@@ -14,15 +14,15 @@ try:
             EventType.FAILED: (CampaignSentStatusType.ERROR, None),
             EventType.BOUNCED: (
                 CampaignSentStatusType.BOUNCED,
-                BaseSubscriber.STATUS_BOUNCED,
+                AbstractSubscriber.STATUS_BOUNCED,
             ),
             EventType.UNSUBSCRIBED: (
                 CampaignSentStatusType.UNSUBSCRIBED,
-                BaseSubscriber.STATUS_UNSUBSCRIBED,
+                AbstractSubscriber.STATUS_UNSUBSCRIBED,
             ),
             EventType.COMPLAINED: (
                 CampaignSentStatusType.COMPLAINED,
-                BaseSubscriber.STATUS_COMPLAINED,
+                AbstractSubscriber.STATUS_COMPLAINED,
             ),
         }
 

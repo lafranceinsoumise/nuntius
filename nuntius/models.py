@@ -171,7 +171,7 @@ class BaseSubscriberManager(models.Manager):
         subscriber.save(update_fields=["subscriber_status"])
 
 
-class BaseSubscriber:
+class AbstractSubscriber:
     STATUS_SUBSCRIBED = 1
     STATUS_UNSUBSCRIBED = 2
     STATUS_BOUNCED = 3
@@ -195,7 +195,20 @@ class BaseSubscriber:
         raise NotImplementedError()
 
     def get_subscriber_data(self):
-        return {"email": self.email}
+        return {"email": self.get_subscriber_email()}
+
+    class Meta:
+        abstract = True
+
+
+class BaseSubscriber(AbstractSubscriber, models.Model):
+    objects = BaseSubscriberManager()
+
+    email = fields.EmailField(max_length=255)
+    subscriber_status = fields.IntegerField(choices=AbstractSubscriber.STATUS_CHOICES)
+
+    class Meta(AbstractSubscriber.Meta):
+        swappable = "NUNTIUS_SUBSCRIBER_MODEL"
 
 
 class CampaignSentStatusType:
