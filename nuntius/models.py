@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from stdimage import StdImageField
 
 from nuntius.celery import nuntius_celery_app
+from nuntius.utils import generate_plain_text
 
 
 def segment_cts_q():
@@ -73,7 +74,7 @@ class Campaign(models.Model):
     )
     message_mosaico_data = fields.TextField(_("Mosaico data"), blank=True)
     message_content_html = fields.TextField(_("Message content (HTML)"), blank=True)
-    message_content_text = fields.TextField(_("Message content (text)"))
+    message_content_text = fields.TextField(_("Message content (text)"), blank=True)
 
     segment_content_type = models.ForeignKey(
         ContentType, on_delete=models.PROTECT, limit_choices_to=segment_cts_q, null=True
@@ -82,6 +83,11 @@ class Campaign(models.Model):
     segment = EditableGenericForeignKey("segment_content_type", "segment_id")
 
     status = fields.IntegerField(choices=STATUS_CHOICES, default=STATUS_WAITING)
+
+    def save(self, *args, **kwargs):
+        if self.message_mosaico_data:
+            self.message_content_text = generate_plain_text(self.message_content_html)
+        super().save(*args, **kwargs)
 
     def get_task_and_update_status(self):
         # caching

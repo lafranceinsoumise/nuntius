@@ -1,4 +1,12 @@
+import html2text
 from PIL import Image, ImageDraw
+
+_h = html2text.HTML2Text()
+_h.ignore_images = True
+
+
+def generate_plain_text(html_message):
+    return _h.handle(html_message)
 
 
 def generate_placeholder(width, height):

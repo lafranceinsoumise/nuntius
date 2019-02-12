@@ -8,7 +8,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.http import HttpResponseBadRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
-from django.templatetags.static import static
 from django.urls import reverse, path
 from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
@@ -121,6 +120,7 @@ class CampaignAdmin(admin.ModelAdmin):
         "status",
         "send_button",
         "mosaico_buttons",
+        "message_content_text",
         "sent_to",
         "sent_ok",
         "sent_bounced",
@@ -221,9 +221,7 @@ class CampaignAdmin(admin.ModelAdmin):
         return format_html(
             '<a href="{}" class="button">' + _("Access the editor") + "</a> "
             '<a href="{}" class="button">' + _("Preview result") + "</a>",
-            reverse("admin:nuntius_campaign_mosaico", args=[instance.pk])
-            + "#"
-            + static("nuntius/templates/versafix-1/template-versafix-1.html"),
+            reverse("admin:nuntius_campaign_mosaico", args=[instance.pk]),
             reverse("admin:nuntius_campaign_mosaico_preview", args=[instance.pk]),
         )
 
