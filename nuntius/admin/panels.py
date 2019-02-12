@@ -202,6 +202,15 @@ class CampaignAdmin(admin.ModelAdmin):
             return mark_safe("-")
 
         if not instance.message_mosaico_data:
+            default_template = (
+                settings.STATIC_URL
+                + "/nuntius/mosaico/templates/versafix-1/template-versafix-1.html",
+                _("Default template"),
+            )
+            templates = getattr(
+                settings, "NUNTIUS_MOSAICO_TEMPLATES", [default_template]
+            )
+
             return format_html(
                 "<p>" + _("Create content from template:") + "</p><br>"
             ) + format_html_join(
@@ -212,9 +221,9 @@ class CampaignAdmin(admin.ModelAdmin):
                         reverse("admin:nuntius_campaign_mosaico", args=[instance.pk])
                         + "#"
                         + template,
-                        os.path.basename(template),
+                        name,
                     )
-                    for template in settings.NUNTIUS_MOSAICO_TEMPLATES
+                    for template, name in templates
                 ),
             )
 

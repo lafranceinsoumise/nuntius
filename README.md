@@ -125,6 +125,18 @@ Then, add your segment model(s) to Nuntius settings :
 NUNTIUS_SEGMENT_MODELS = ['myapp.lastlogindatesegment']
 ````
 
+### Custom template
+
+You can write your own Mosaico template to fit your needs. To make it available in the admin,
+list the public URL path of the template in `NUNTIUS_MOSAICO_TEMPLATES`. The template can be served
+by Django static files system, or any other way at your preference.
+
+```python
+NUNTIUS_MOSAICO_TEMPLATES = [
+    ("/static/mosaico_templates/versafix-2/template-versafix-2.html", "Custom template")
+]
+```
+
 ### ESP and Webhooks
 
 Maintaining your own SMTP server to send your newsletter is probably

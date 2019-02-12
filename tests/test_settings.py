@@ -52,7 +52,7 @@ NUNTIUS_SEGMENT_MODELS = ["tests.testsegment"]
 NUNTIUS_SUBSCRIBER_MODEL = "tests.TestSubscriber"
 NUNTIUS_CELERY_BROKER_URL = "redis://"
 NUNTIUS_MOSAICO_TEMPLATES = [
-    "/static/mosaico_templates/versafix-2/template-versafix-2.html"
+    ("/static/mosaico_templates/versafix-2/template-versafix-2.html", "Custom template")
 ]
 
 MEDIA_URL = "/media/"
