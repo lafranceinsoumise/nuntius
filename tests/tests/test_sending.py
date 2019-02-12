@@ -17,7 +17,12 @@ class SendingTestCase(TestCase):
 
     def test_send_campaign(self):
         segment = TestSegment.objects.get(id="subscribed")
-        campaign = Campaign.objects.create(segment=segment)
+        campaign = Campaign.objects.create(
+            segment=segment,
+            message_from_email="test@example.com",
+            message_from_name="Test sender",
+            message_subject="Subject",
+        )
         send_campaign(campaign.pk)
 
         self.assertEqual(
@@ -25,6 +30,9 @@ class SendingTestCase(TestCase):
             len(mail.outbox),
             campaign.get_sent_count(),
         )
+        sent_email = mail.outbox[0]
+        self.assertEqual(sent_email.subject, "Subject")
+        self.assertEqual(sent_email.from_email, "Test sender <test@example.com>")
 
     def test_send_campaign_without_segment(self):
         campaign = Campaign.objects.create()

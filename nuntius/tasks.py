@@ -79,12 +79,17 @@ def send_campaign(campaign_pk):
 
                         subscriber_data = subscriber.get_subscriber_data()
 
+                        from_email = (
+                            f"{campaign.message_from_name} <{campaign.message_from_email}>"
+                            if campaign.message_from_name
+                            else campaign.message_from_email
+                        )
                         message = EmailMultiAlternatives(
                             subject=campaign.message_subject,
                             body=replace_vars(
                                 campaign.message_content_text, subscriber_data
                             ),
-                            from_email=campaign.message_from_email,
+                            from_email=from_email,
                             to=[email],
                             reply_to=campaign.message_reply_to_email,
                             connection=connection,
