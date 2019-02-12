@@ -296,7 +296,15 @@ class CampaignAdmin(admin.ModelAdmin):
         return redirect(reverse("admin:nuntius_campaign_change", args=[pk]))
 
     def mosaico_view(self, request, pk):
-        return TemplateResponse(request=request, template="nuntius/editor.html")
+        return TemplateResponse(
+            request=request,
+            template="nuntius/editor.html",
+            context={
+                "image_processor_backend_url": request.build_absolute_uri(
+                    reverse("nuntius_mosaico_image_processor")
+                )
+            },
+        )
 
     def mosaico_preview(self, request, pk):
         campaign = Campaign.objects.get(pk=pk)

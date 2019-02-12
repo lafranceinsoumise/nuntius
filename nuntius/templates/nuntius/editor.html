@@ -67,7 +67,7 @@
         }];
 
         var config = {
-          imgProcessorBackend: '{%  url 'nuntius_mosaico_image_processor' %}',
+          imgProcessorBackend: '{{ image_processor_backend_url }}',
           fileuploadConfig: {
             url: basePath + 'upload/',
             paramName: 'file',
