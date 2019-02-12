@@ -50,7 +50,9 @@ def send_campaign(campaign_pk):
         )
 
     try:
-        with mail.get_connection() as connection:
+        with mail.get_connection(
+            backend=getattr(settings, "NUNTIUS_EMAIL_BACKEND", None)
+        ) as connection:
             for subscriber in queryset.iterator():
 
                 def send_subscriber(subscriber, retries=10):
