@@ -5,14 +5,12 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('nuntius', '0006_subscriber_verbose_name'),
-    ]
+    dependencies = [("nuntius", "0006_subscriber_verbose_name")]
 
     operations = [
         migrations.AlterField(
-            model_name='campaign',
-            name='message_content_text',
-            field=models.TextField(blank=True, verbose_name='Message content (text)'),
-        ),
+            model_name="campaign",
+            name="message_content_text",
+            field=models.TextField(blank=True, verbose_name="Message content (text)"),
+        )
     ]

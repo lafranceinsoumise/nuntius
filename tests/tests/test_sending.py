@@ -1,12 +1,12 @@
 from django.core import mail
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 
 from nuntius.models import Campaign, BaseSubscriber
 from nuntius.tasks import send_campaign
 from tests.models import TestSegment, TestSubscriber
 
 
-class SendingTestCase(TestCase):
+class SendingTestCase(TransactionTestCase):
     fixtures = ["subscribers.json"]
 
     def test_segments(self):

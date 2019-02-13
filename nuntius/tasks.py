@@ -32,6 +32,22 @@ def replace_vars(string, data):
     return Template(var_regex.sub(r"{{ \1 }}", string)).render(context=context)
 
 
+def reset_connection(connection):
+    try:
+        connection.close()
+    except Exception:
+        pass
+
+    for retry in reversed(range(1, 11)):
+        try:
+            sleep(1 / retry)
+            connection.open()
+        except Exception:
+            connection.close()
+        else:
+            break
+
+
 @nuntius_celery_app.task()
 def send_campaign(campaign_pk):
     campaign = Campaign.objects.get(pk=campaign_pk)
@@ -45,99 +61,96 @@ def send_campaign(campaign_pk):
         ).model_class()
         queryset = model_class.objects.all()
     else:
-        queryset = campaign.segment.get_subscribers_queryset().exclude(
-            campaignsentevent__campaign=campaign
-        )
+        queryset = campaign.segment.get_subscribers_queryset()
+
+    def send_message(connection, sent_event, message, retries=10):
+        try:
+            message.send()
+        except SMTPServerDisconnected as e:
+            if retries == 0:
+                campaign.status = Campaign.STATUS_ERROR
+                campaign.save()
+                raise e
+
+            reset_connection(connection)
+
+            sleep(1 / retries)
+
+            send_message(connection, sent_event, message, retries=retries - 1)
+        except (SMTPRecipientsRefused, AnymailRecipientsRefused):
+            sent_event.result = CampaignSentStatusType.BLOCKED
+            sent_event.save()
+        else:
+            if hasattr(message, "anymail_status"):
+                if message.anymail_status.recipients[sent_event.email].status in [
+                    "invalid",
+                    "rejected",
+                    "failed",
+                ]:
+                    sent_event.result = CampaignSentStatusType.REJECTED
+                else:
+                    sent_event.result = CampaignSentStatusType.UNKNOWN
+                sent_event.esp_message_id = message.anymail_status.recipients[
+                    sent_event.email
+                ].message_id
+            else:
+                sent_event.result = CampaignSentStatusType.UNKNOWN
+            sent_event.save()
 
     try:
         with mail.get_connection(
             backend=getattr(settings, "NUNTIUS_EMAIL_BACKEND", None)
         ) as connection:
             for subscriber in queryset.iterator():
+                if (
+                    subscriber.get_subscriber_status()
+                    != AbstractSubscriber.STATUS_SUBSCRIBED
+                ):
+                    continue
 
-                def send_subscriber(subscriber, retries=10):
-                    if (
-                        subscriber.get_subscriber_status()
-                        != AbstractSubscriber.STATUS_SUBSCRIBED
-                    ):
-                        return
+                email = subscriber.get_subscriber_email()
 
-                    email = subscriber.get_subscriber_email()
+                (sent_event, created) = CampaignSentEvent.objects.get_or_create(
+                    campaign=campaign, subscriber=subscriber, email=email
+                )
 
-                    (event, created) = CampaignSentEvent.objects.get_or_create(
-                        campaign=campaign, subscriber=subscriber, email=email
+                if sent_event.result != CampaignSentStatusType.PENDING:
+                    continue
+
+                with transaction.atomic():
+                    sent_event = CampaignSentEvent.objects.select_for_update().get(
+                        subscriber=subscriber, campaign=campaign
                     )
 
-                    if event.result != CampaignSentStatusType.PENDING:
-                        return
+                    if sent_event.result != CampaignSentStatusType.PENDING:
+                        continue
 
-                    with transaction.atomic():
-                        event = CampaignSentEvent.objects.select_for_update().get(
-                            subscriber=subscriber, campaign=campaign
-                        )
+                    subscriber_data = subscriber.get_subscriber_data()
 
-                        if event.result != CampaignSentStatusType.PENDING:
-                            return
-
-                        subscriber_data = subscriber.get_subscriber_data()
-
-                        from_email = (
-                            f"{campaign.message_from_name} <{campaign.message_from_email}>"
-                            if campaign.message_from_name
-                            else campaign.message_from_email
-                        )
-                        message = EmailMultiAlternatives(
-                            subject=campaign.message_subject,
-                            body=replace_vars(
-                                campaign.message_content_text, subscriber_data
-                            ),
-                            from_email=from_email,
-                            to=[email],
-                            reply_to=campaign.message_reply_to_email,
-                            connection=connection,
-                        )
-                        message.attach_alternative(
-                            replace_vars(
-                                campaign.message_content_html, subscriber_data
-                            ),
-                            "text/html",
-                        )
-                        try:
-                            message.send()
-                            if hasattr(message, "anymail_status"):
-                                if message.anymail_status.recipients[email].status in [
-                                    "invalid",
-                                    "rejected",
-                                    "failed",
-                                ]:
-                                    event.result = CampaignSentStatusType.REJECTED
-                                else:
-                                    event.result = CampaignSentStatusType.UNKNOWN
-                                event.esp_message_id = message.anymail_status.recipients[
-                                    email
-                                ].message_id
-                            else:
-                                event.result = CampaignSentStatusType.UNKNOWN
-                            event.save()
-                        except SMTPServerDisconnected as e:
-                            if retries == 0:
-                                campaign.status = Campaign.STATUS_ERROR
-                                campaign.save()
-                                raise e
-                            connection.close()
-
-                            sleep(1 / retries)
-
-                            connection.open()
-                            send_subscriber(subscriber, retries=retries - 1)
-                        except (SMTPRecipientsRefused, AnymailRecipientsRefused):
-                            event.result = CampaignSentStatusType.BLOCKED
-                            event.save()
-
-                send_subscriber(subscriber)
+                    from_email = (
+                        f"{campaign.message_from_name} <{campaign.message_from_email}>"
+                        if campaign.message_from_name
+                        else campaign.message_from_email
+                    )
+                    message = EmailMultiAlternatives(
+                        subject=campaign.message_subject,
+                        body=replace_vars(
+                            campaign.message_content_text, subscriber_data
+                        ),
+                        from_email=from_email,
+                        to=[email],
+                        reply_to=campaign.message_reply_to_email,
+                        connection=connection,
+                    )
+                    message.attach_alternative(
+                        replace_vars(campaign.message_content_html, subscriber_data),
+                        "text/html",
+                    )
+                    send_message(connection, sent_event, message)
 
             campaign.status = Campaign.STATUS_SENT
             campaign.save()
-    except ConnectionError:
+    except Exception as e:
         campaign.status = Campaign.STATUS_ERROR
         campaign.save()
+        raise e

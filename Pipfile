@@ -7,6 +7,7 @@ name = "pypi"
 tqdm = "*"
 mysqlclient = "*"
 black = "==18.9b0"
+redis = "*"
 
 [packages]
 django = "*"
@@ -15,6 +16,7 @@ pillow = "*"
 django-anymail = "*"
 django-stdimage = "*"
 html2text = "*"
+mysqlclient = "==1.4.2"
 
 [requires]
 python_version = "3.6"
