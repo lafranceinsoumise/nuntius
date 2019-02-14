@@ -1,3 +1,8 @@
+"""
+    Nuntius needs its own celery app. This module is named _tasks so it is not autodiscovered by other celery app that
+    live in the project.
+"""
+
 import re
 from smtplib import SMTPServerDisconnected, SMTPRecipientsRefused, SMTPSenderRefused
 from time import sleep

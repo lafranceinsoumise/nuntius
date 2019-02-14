@@ -4,7 +4,6 @@ from celery import Celery
 nuntius_celery_app = Celery("nuntius")
 
 nuntius_celery_app.conf.task_default_routing_key = "nuntius"
-nuntius_celery_app.task_send_sent_event = True
 nuntius_celery_app.conf.task_started = True
 
 nuntius_celery_app.config_from_object(

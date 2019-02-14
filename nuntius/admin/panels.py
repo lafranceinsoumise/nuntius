@@ -18,7 +18,7 @@ from django.views.generic import CreateView
 from nuntius.admin.fields import GenericModelChoiceField
 from nuntius.celery import nuntius_celery_app
 from nuntius.models import segment_cts, Campaign, MosaicoImage
-from nuntius.tasks import send_campaign
+from nuntius._tasks import send_campaign
 
 
 class CampaignAdminForm(forms.ModelForm):

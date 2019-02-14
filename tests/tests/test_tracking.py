@@ -10,7 +10,7 @@ from nuntius.models import (
     CampaignSentStatusType,
     BaseSubscriber,
 )
-from nuntius.tasks import send_campaign
+from nuntius._tasks import send_campaign
 from tests.models import TestSubscriber
 
 
