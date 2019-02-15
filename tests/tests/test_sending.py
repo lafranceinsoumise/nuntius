@@ -4,6 +4,7 @@ from django.test import TestCase, TransactionTestCase
 from nuntius.models import Campaign, BaseSubscriber
 from nuntius._tasks import send_campaign
 from tests.models import TestSegment, TestSubscriber
+from tests.tasks import dumb_task
 
 
 class SendingTestCase(TransactionTestCase):
@@ -76,3 +77,10 @@ class SendingTestCase(TransactionTestCase):
             f"test {segment.get_subscribers_queryset().first().email} test",
             str(mail.outbox[0].message()),
         )
+
+
+class CeleryTestCase(TestCase):
+    def test_project_celery_config_is_not_overwritten(self):
+        campaign = Campaign.objects.create()
+        # if nuntius celery app has replaced tests app, this will fail on travis when redis is down
+        dumb_task.delay()
