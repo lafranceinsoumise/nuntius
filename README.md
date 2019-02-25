@@ -72,10 +72,21 @@ Celery is used to queue and send emails. Nuntius must have its own celery worker
     The command for celery should be something like this :
     ```python
     export DJANGO_SETTINGS_MODULE=myapp.settings
-    celery -A nuntius.celery worker
+    celery -A nuntius.celery worker -Q nuntius
     ```
 
-Unless you are using a custom admin site, admin panels for Nuntius will be
+    Be careful if you have your own celery app in your project using the same broker.
+    You should have two separate workers for your tasks and for Nuntius tasks,
+    because Nuntius worker needs a special configuration to allow Nuntius to report
+    correctly sendig state.
+
+    Your worker for your project tasks should explicitely
+    take tasks only from the default queue or any other queue you define:
+    ```python
+    celery -A myapp.celery worker -Q default
+    ```
+
+6.  Unless you are using a custom admin site, admin panels for Nuntius will be
 [autodiscovered](https://docs.djangoproject.com/en/2.0/ref/contrib/admin/#discovery-of-admin-files)
 and added to you admin site.
 
