@@ -69,10 +69,11 @@ Celery is used to queue and send emails. Nuntius must have its own celery worker
     ````
 
 5. Launch Redis and celery in the background. In production, you should probably use systemd for this.
-    The command for celery should be something like this :
+    The command for celery must be something like this
+    (the app name, queue and node name options are required):
     ```python
     export DJANGO_SETTINGS_MODULE=myapp.settings
-    celery -A nuntius.celery worker -Q nuntius
+    celery -A nuntius.celery worker -Q nuntius -n nuntius@%h
     ```
 
     Be careful if you have your own celery app in your project using the same broker.
@@ -80,10 +81,12 @@ Celery is used to queue and send emails. Nuntius must have its own celery worker
     because Nuntius worker needs a special configuration to allow Nuntius to report
     correctly sendig state.
 
-    Your worker for your project tasks should explicitely
-    take tasks only from the default queue or any other queue you define:
+    Your worker for your project tasks must explicitely
+    take tasks only from the default queue or any other queue you define.
+    It must also have a different node name than the worker dedicated to nuntius.
+
     ```python
-    celery -A myapp.celery worker -Q default
+    celery -A myapp.celery worker -Q celery
     ```
 
 6.  Unless you are using a custom admin site, admin panels for Nuntius will be
