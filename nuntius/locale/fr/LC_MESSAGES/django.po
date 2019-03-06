@@ -1,0 +1,203 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-03-06 11:32-0600\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: nuntius/admin/fields.py:44
+msgid "Send to everyone"
+msgstr "Envoyer à tout le monde"
+
+#: nuntius/admin/panels.py:90
+msgid "Content"
+msgstr "Contenu"
+
+#: nuntius/admin/panels.py:100 nuntius/models.py:50 nuntius/models.py:236
+msgid "Sending"
+msgstr "Envoi"
+
+#: nuntius/admin/panels.py:165
+msgid "Subscribers"
+msgstr "Abonné⋅e⋅s"
+
+#: nuntius/admin/panels.py:170
+#, fuzzy
+#| msgid "Sent"
+msgid "Sent to"
+msgstr "Envoyé"
+
+#: nuntius/admin/panels.py:175
+msgid "Ok"
+msgstr "Ok"
+
+#: nuntius/admin/panels.py:180 nuntius/models.py:192 nuntius/models.py:240
+msgid "Bounced"
+msgstr "Bounce"
+
+#: nuntius/admin/panels.py:185 nuntius/models.py:193 nuntius/models.py:241
+msgid "Complained"
+msgstr "Plaintes"
+
+#: nuntius/admin/panels.py:190
+msgid "Blocked"
+msgstr "Bloqués"
+
+#: nuntius/admin/panels.py:199
+msgid "Connection to celery failed"
+msgstr "La connexion à celery a échoué"
+
+#: nuntius/admin/panels.py:201
+msgid "Send task state"
+msgstr "État de la tâche d'envoi"
+
+#: nuntius/admin/panels.py:208
+msgid "Pause"
+msgstr "Pause"
+
+#: nuntius/admin/panels.py:213 nuntius/admin/panels.py:217
+msgid "Send"
+msgstr "Envoyer"
+
+#: nuntius/admin/panels.py:234
+#, fuzzy
+#| msgid "Available variables (examples for first subscriber)"
+msgid "Available variables (for first subscriber)"
+msgstr "Variables disponibles (exemples pour le premier abonné)"
+
+#: nuntius/admin/panels.py:245
+msgid "Default template"
+msgstr "Modèle par défaut"
+
+#: nuntius/admin/panels.py:252
+msgid "Create content from template:"
+msgstr "Créer le contenu à partir du modèle"
+
+#: nuntius/admin/panels.py:268
+msgid "Access the editor"
+msgstr "Accéder à l'éditeur"
+
+#: nuntius/admin/panels.py:269
+msgid "Preview result"
+msgstr "Aperçu du résultat"
+
+#: nuntius/admin/panels.py:274
+msgid "HTML content"
+msgstr "Contenu HTML"
+
+#: nuntius/models.py:49
+msgid "Waiting"
+msgstr "En attente"
+
+#: nuntius/models.py:51 nuntius/models.py:239
+msgid "Sent"
+msgstr "Envoyé"
+
+#: nuntius/models.py:52 nuntius/models.py:244
+msgid "Error"
+msgstr "Erreur"
+
+#: nuntius/models.py:57
+msgid "Celery tasks identifier"
+msgstr "Identifiant de la tâche celery"
+
+#: nuntius/models.py:60
+msgid "Name (invisible to subscribers)"
+msgstr "Nom (invisible pour les abonné⋅e⋅s)"
+
+#: nuntius/models.py:61
+msgid "Created"
+msgstr "Création"
+
+#: nuntius/models.py:62
+msgid "Updated"
+msgstr "Mise à jour"
+
+#: nuntius/models.py:63
+msgid "First sent"
+msgstr "Premier envoi"
+
+#: nuntius/models.py:65
+msgid "\"From\" name"
+msgstr "Nom pour le champ \"De\""
+
+#: nuntius/models.py:66
+msgid "\"From\" email address"
+msgstr "Email pour le champ \"De\""
+
+#: nuntius/models.py:68
+msgid "\"Reply to\" name"
+msgstr "Nom pour le champ \"Répondre à\""
+
+#: nuntius/models.py:71
+msgid "\"Reply to\" email address"
+msgstr "Email pour le champ \"Répondre à\""
+
+#: nuntius/models.py:74
+msgid "Message subject line"
+msgstr "Objet du message"
+
+#: nuntius/models.py:76
+msgid "Mosaico data"
+msgstr "Données mosaico"
+
+#: nuntius/models.py:77
+msgid "Message content (HTML)"
+msgstr "Contenu du message (HTML)"
+
+#: nuntius/models.py:78
+msgid "Message content (text)"
+msgstr "Contenu du message (texte)"
+
+#: nuntius/models.py:190
+msgid "Subscribed"
+msgstr "Abonné⋅e"
+
+#: nuntius/models.py:191 nuntius/models.py:242
+msgid "Unsubscribed"
+msgstr "Désabonné⋅e⋅s"
+
+#: nuntius/models.py:237
+msgid "Unknown"
+msgstr "Inconnu"
+
+#: nuntius/models.py:238
+msgid "Rejected by server"
+msgstr "Rejeté par le serveur"
+
+#: nuntius/models.py:243
+msgid "Blocked temporarily"
+msgstr "Bloqué temporairement"
+
+#: nuntius/models.py:252
+msgid "Subscriber"
+msgstr "Abonné⋅e"
+
+#: nuntius/models.py:256
+msgid "Email address at event time"
+msgstr "Adresse email au moment de l'événement"
+
+#: nuntius/models.py:257
+msgid "Campaign"
+msgstr "Campagne"
+
+#: nuntius/models.py:260
+msgid "Operation result"
+msgstr "Résultat de l'opération"
+
+#: nuntius/models.py:266
+msgid "ID given by the sending server"
+msgstr "Identifiant attribué par le serveur d'envoi"

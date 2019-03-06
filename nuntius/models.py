@@ -58,9 +58,9 @@ class Campaign(models.Model):
     )
 
     name = fields.CharField(_("Name (invisible to subscribers)"), max_length=255)
-    created = fields.DateTimeField(auto_now_add=True)
-    updated = fields.DateTimeField(auto_now=True)
-    first_sent = fields.DateTimeField(blank=True, null=True)
+    created = fields.DateTimeField(_("Created"), auto_now_add=True)
+    updated = fields.DateTimeField(_("Updated"), auto_now=True)
+    first_sent = fields.DateTimeField(_("First sent"), blank=True, null=True)
 
     message_from_name = fields.CharField(_('"From" name'), max_length=255, blank=True)
     message_from_email = fields.EmailField(_('"From" email address'), max_length=255)

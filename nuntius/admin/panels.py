@@ -167,6 +167,8 @@ class CampaignAdmin(admin.ModelAdmin):
     def sent_to(self, instance):
         return instance.get_sent_count()
 
+    sent_to.short_description = _("Sent to")
+
     def sent_ok(self, instance):
         return instance.get_ok_count()
 
