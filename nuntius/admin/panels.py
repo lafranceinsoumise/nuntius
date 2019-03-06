@@ -86,7 +86,16 @@ class CampaignAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        (_("Content"), {"fields": ("mosaico_buttons", "message_content_text")}),
+        (
+            _("Content"),
+            {
+                "fields": (
+                    "available_variables",
+                    "mosaico_buttons",
+                    "message_content_text",
+                )
+            },
+        ),
         (
             _("Sending"),
             {
@@ -125,6 +134,7 @@ class CampaignAdmin(admin.ModelAdmin):
         "segment_subscribers",
         "status",
         "send_button",
+        "available_variables",
         "mosaico_buttons",
         "message_content_text",
         "sent_to",
@@ -203,6 +213,24 @@ class CampaignAdmin(admin.ModelAdmin):
         )
 
     send_button.short_description = _("Send")
+
+    def available_variables(self, instance):
+        if instance.segment is not None:
+            qs = instance.segment.get_subscribers_queryset()
+        else:
+            model = settings.NUNTIUS_SUBSCRIBER_MODEL
+            model_class = ContentType.objects.get(
+                app_label=model.split(".")[0], model=model.split(".")[1].lower()
+            ).model_class()
+            qs = model_class.objects.all()
+
+        data = qs.first().get_subscriber_data()
+
+        return format_html_join("<br/>", "<b>{{{{ {} }}}}</b> ({})", data.items())
+
+    available_variables.short_description = _(
+        "Available variables (for first subscriber)"
+    )
 
     def mosaico_buttons(self, instance):
         if instance.pk is None:
