@@ -75,6 +75,8 @@ class CampaignAdmin(admin.ModelAdmin):
             None,
             {
                 "fields": (
+                    "created",
+                    "updated",
                     "name",
                     "message_from_name",
                     "message_from_email",
@@ -89,6 +91,7 @@ class CampaignAdmin(admin.ModelAdmin):
             _("Sending"),
             {
                 "fields": (
+                    "first_sent",
                     "segment",
                     "segment_subscribers",
                     "status",
@@ -116,6 +119,9 @@ class CampaignAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     form = CampaignAdminForm
     readonly_fields = (
+        "created",
+        "updated",
+        "first_sent",
         "segment_subscribers",
         "status",
         "send_button",

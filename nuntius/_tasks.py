@@ -13,6 +13,7 @@ from django.core import mail
 from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
 from django.template import Template, Context
+from django.utils import timezone
 
 from nuntius.celery import nuntius_celery_app
 from nuntius.models import (
@@ -57,6 +58,8 @@ def reset_connection(connection):
 def send_campaign(campaign_pk):
     campaign = Campaign.objects.get(pk=campaign_pk)
     campaign.status = Campaign.STATUS_SENDING
+    if campaign.first_sent is None:
+        campaign.first_sent = timezone.now()
     campaign.save()
 
     if campaign.segment is None:
