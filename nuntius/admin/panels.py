@@ -129,6 +129,7 @@ class CampaignAdmin(admin.ModelAdmin):
         "task_uuid",
         "task_state",
     )
+    save_as = True
 
     def get_object(self, request, object_id, from_field=None):
         object = super().get_object(request, object_id, from_field=from_field)
@@ -212,7 +213,7 @@ class CampaignAdmin(admin.ModelAdmin):
             )
 
             return format_html(
-                "<p>" + _("Create content from template:") + "</p><br>"
+                "<h4>" + _("Create content from template:") + "</h4>"
             ) + format_html_join(
                 " ",
                 '<a href="{}" class="button">{}</a>',

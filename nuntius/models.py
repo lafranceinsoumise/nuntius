@@ -155,6 +155,9 @@ class Campaign(models.Model):
             .count()
         )
 
+    def __str__(self):
+        return self.name
+
 
 class BaseSegment:
     def get_display_name(self):
