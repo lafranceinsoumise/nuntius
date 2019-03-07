@@ -248,9 +248,7 @@ class CampaignAdmin(admin.ModelAdmin):
                 settings, "NUNTIUS_MOSAICO_TEMPLATES", [default_template]
             )
 
-            return format_html(
-                "<h4>" + _("Create content from template:") + "</h4>"
-            ) + format_html_join(
+            return format_html_join(
                 " ",
                 '<a href="{}" class="button">{}</a>',
                 (
@@ -266,7 +264,9 @@ class CampaignAdmin(admin.ModelAdmin):
 
         return format_html(
             '<a href="{}" class="button">' + _("Access the editor") + "</a> "
-            '<a href="{}" class="button">' + _("Preview result") + "</a>",
+            '<a href="{}" class="button" target="_blank">'
+            + _("Preview result")
+            + "</a>",
             reverse("admin:nuntius_campaign_mosaico", args=[instance.pk]),
             reverse("admin:nuntius_campaign_mosaico_preview", args=[instance.pk]),
         )

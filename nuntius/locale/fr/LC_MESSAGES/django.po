@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-03-06 11:32-0600\n"
+"POT-Creation-Date: 2019-03-07 08:28-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -82,15 +82,11 @@ msgstr "Variables disponibles (exemples pour le premier abonné)"
 msgid "Default template"
 msgstr "Modèle par défaut"
 
-#: nuntius/admin/panels.py:252
-msgid "Create content from template:"
-msgstr "Créer le contenu à partir du modèle"
-
-#: nuntius/admin/panels.py:268
+#: nuntius/admin/panels.py:266
 msgid "Access the editor"
 msgstr "Accéder à l'éditeur"
 
-#: nuntius/admin/panels.py:269
+#: nuntius/admin/panels.py:268
 msgid "Preview result"
 msgstr "Aperçu du résultat"
 
