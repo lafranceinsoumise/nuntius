@@ -17,7 +17,7 @@ from django.views.generic import CreateView
 
 from nuntius.admin.fields import GenericModelChoiceField
 from nuntius.celery import nuntius_celery_app
-from nuntius.models import segment_cts, Campaign, MosaicoImage
+from nuntius.models import segment_cts, Campaign, MosaicoImage, CampaignSentEvent
 from nuntius._tasks import send_campaign
 
 
@@ -97,7 +97,7 @@ class CampaignAdmin(admin.ModelAdmin):
             },
         ),
         (
-            _("Sending"),
+            _("Sending details"),
             {
                 "fields": (
                     "first_sent",
@@ -174,7 +174,13 @@ class CampaignAdmin(admin.ModelAdmin):
     segment_subscribers.short_description = _("Subscribers")
 
     def sent_to(self, instance):
-        return instance.get_sent_count()
+        return format_html(
+            "<a href={}>{}</a>",
+            reverse("admin:nuntius_campaignsentevent_changelist")
+            + "?campaign_id__exact="
+            + str(instance.pk),
+            str(instance.get_sent_count()),
+        )
 
     sent_to.short_description = _("Sent to")
 
@@ -378,3 +384,15 @@ class CampaignAdmin(admin.ModelAdmin):
         campaign.save()
 
         return HttpResponse()
+
+
+@admin.register(CampaignSentEvent)
+class CampaignSentEventAdmin(admin.ModelAdmin):
+    def has_change_permission(self, *args, **kwargs):
+        return False
+
+    def has_add_permission(self, *args, **kwargs):
+        return False
+
+    actions = None
+    list_display = ("subscriber", "campaign", "email", "datetime", "result")

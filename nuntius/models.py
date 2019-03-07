@@ -159,6 +159,10 @@ class Campaign(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = _("Campaign")
+        verbose_name_plural = _("Campaigns")
+
 
 class BaseSegment:
     def get_display_name(self):
@@ -253,9 +257,9 @@ class CampaignSentEvent(models.Model):
         null=True,
         blank=True,
     )
-    email = models.EmailField(_("Email address at event time"))
-    campaign = models.ForeignKey("Campaign", models.CASCADE, _("Campaign"))
-    datetime = models.DateTimeField(auto_now_add=True)
+    email = models.EmailField(_("Email address at sending time"))
+    campaign = models.ForeignKey("Campaign", models.CASCADE, verbose_name=_("Campaign"))
+    datetime = models.DateTimeField(_("Sending time"), auto_now_add=True)
     result = models.CharField(
         _("Operation result"),
         max_length=2,
@@ -268,6 +272,8 @@ class CampaignSentEvent(models.Model):
 
     class Meta:
         unique_together = ("campaign", "subscriber")
+        verbose_name = _("Sent event")
+        verbose_name_plural = _("Sent events")
 
 
 class MosaicoImage(models.Model):
