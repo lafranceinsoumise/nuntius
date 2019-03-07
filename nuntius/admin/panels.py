@@ -8,7 +8,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.http import HttpResponseBadRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
-from django.urls import reverse, path
+from django.urls import reverse, path, resolve
 from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
@@ -152,6 +152,15 @@ class CampaignAdmin(admin.ModelAdmin):
         object.get_task_and_update_status()
 
         return object
+
+    def save_model(self, request, campaign, form, change):
+        if "_saveasnew" in request.POST:
+            original_pk = resolve(request.path).kwargs["object_id"]
+            original_campaign = Campaign.objects.get(id=original_pk)
+            campaign.message_content_html = original_campaign.message_content_html
+            campaign.message_mosaico_data = original_campaign.message_mosaico_data
+
+        return super().save_model(request, campaign, form, change)
 
     def segment_subscribers(self, instance):
         if instance.segment is None:
