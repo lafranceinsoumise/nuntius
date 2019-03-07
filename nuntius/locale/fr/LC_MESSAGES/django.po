@@ -38,7 +38,7 @@ msgstr "Abonné⋅e⋅s"
 #, fuzzy
 #| msgid "Sent"
 msgid "Sent to"
-msgstr "Envoyé"
+msgstr "Envoyé à"
 
 #: nuntius/admin/panels.py:175
 msgid "Ok"
