@@ -105,13 +105,24 @@ class CampaignAdmin(admin.ModelAdmin):
                     "segment_subscribers",
                     "status",
                     "send_button",
+                    "task_uuid",
+                    "task_state",
+                )
+            },
+        ),
+        (
+            _("Sending reports"),
+            {
+                "fields": (
                     "sent_to",
                     "sent_ok",
                     "sent_bounced",
                     "sent_complained",
                     "sent_blocked",
-                    "task_uuid",
-                    "task_state",
+                    "unique_open_count",
+                    "unique_click_count",
+                    "open_count",
+                    "click_count",
                 )
             },
         ),
@@ -142,6 +153,10 @@ class CampaignAdmin(admin.ModelAdmin):
         "sent_bounced",
         "sent_complained",
         "sent_blocked",
+        "unique_open_count",
+        "unique_click_count",
+        "open_count",
+        "click_count",
         "task_uuid",
         "task_state",
     )
@@ -203,6 +218,26 @@ class CampaignAdmin(admin.ModelAdmin):
         return instance.get_blocked_count()
 
     sent_blocked.short_description = _("Blocked")
+
+    def open_count(self, instance):
+        return instance.get_open_count()
+
+    open_count.short_description = _("Open count")
+
+    def unique_open_count(self, instance):
+        return instance.get_unique_open_count()
+
+    unique_open_count.short_description = _("Unique open count")
+
+    def click_count(self, instance):
+        return instance.get_click_count()
+
+    click_count.short_description = _("Click count")
+
+    def unique_click_count(self, instance):
+        return instance.get_unique_click_count()
+
+    unique_click_count.short_description = _("Unique click count")
 
     def task_state(self, instance):
         task = instance.get_task_and_update_status()

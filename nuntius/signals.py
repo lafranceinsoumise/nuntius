@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.dispatch import receiver
 
 from nuntius.actions import update_subscriber
@@ -26,13 +27,20 @@ try:
             ),
         }
 
-        if event.event_type in actions:
-            try:
-                c = CampaignSentEvent.objects.get(esp_message_id=event.message_id)
-                c.result = actions[event.event_type][0]
+        try:
+            with transaction.atomic():
+                c = CampaignSentEvent.objects.select_for_update().get(
+                    esp_message_id=event.message_id
+                )
+                if event.event_type in actions:
+                    c.result = actions[event.event_type][0]
+                if event.event_type == EventType.OPENED:
+                    c.open_count = c.open_count + 1
+                if event.event_type == EventType.CLICKED:
+                    c.click_count = c.click_count + 1
                 c.save()
-            except CampaignSentEvent.DoesNotExist:
-                pass
+        except CampaignSentEvent.DoesNotExist:
+            pass
 
             if actions[event.event_type][1] is not None:
                 update_subscriber(event.recipient, actions[event.event_type][1])

@@ -6,7 +6,8 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from django.db.models import fields, Q
+from django.db.models import fields, Q, Sum, Value
+from django.db.models.functions import Coalesce
 from django.utils.translation import gettext_lazy as _
 from stdimage import StdImageField
 
@@ -156,6 +157,30 @@ class Campaign(models.Model):
             .count()
         )
 
+    def get_open_count(self):
+        return CampaignSentEvent.objects.filter(campaign=self).aggregate(
+            count=Coalesce(Sum("open_count"), Value(0))
+        )["count"]
+
+    def get_unique_open_count(self):
+        return (
+            CampaignSentEvent.objects.filter(campaign=self)
+            .filter(open_count__gt=0)
+            .count()
+        )
+
+    def get_click_count(self):
+        return CampaignSentEvent.objects.filter(campaign=self).aggregate(
+            count=Coalesce(Sum("click_count"), Value(0))
+        )["count"]
+
+    def get_unique_click_count(self):
+        return (
+            CampaignSentEvent.objects.filter(campaign=self)
+            .filter(click_count__gt=0)
+            .count()
+        )
+
     def __str__(self):
         return self.name
 
@@ -269,6 +294,8 @@ class CampaignSentEvent(models.Model):
     esp_message_id = models.CharField(
         _("ID given by the sending server"), unique=True, max_length=255, null=True
     )
+    open_count = models.IntegerField(_("Open count"), default=0, editable=False)
+    click_count = models.IntegerField(_("Click count"), default=0, editable=False)
 
     class Meta:
         unique_together = ("campaign", "subscriber")
