@@ -25,3 +25,9 @@ class TestSegment(BaseSegment, models.Model):
 
 class TestSubscriber(BaseSubscriber):
     segments = models.ManyToManyField("TestSegment")
+
+    def get_subscriber_data(self):
+        return {
+            "segments": ", ".join(str(s) for s in self.segments.all()),
+            **super().get_subscriber_data(),
+        }

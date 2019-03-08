@@ -278,7 +278,9 @@ class CampaignAdmin(admin.ModelAdmin):
 
         data = qs.first().get_subscriber_data()
 
-        return format_html_join("<br/>", "<b>{{{{ {} }}}}</b> ({})", data.items())
+        return format_html_join(
+            mark_safe("<br/>"), "<b>{{{{ {} }}}}</b> ({})", data.items()
+        )
 
     available_variables.short_description = _(
         "Available variables (for first subscriber)"
