@@ -91,7 +91,13 @@ Celery is used to queue and send emails. Nuntius must have its own celery worker
 
 6.  Unless you are using a custom admin site, admin panels for Nuntius will be
 [autodiscovered](https://docs.djangoproject.com/en/2.0/ref/contrib/admin/#discovery-of-admin-files)
-and added to you admin site.
+and added to you admin site. If you use a custom admin site, you need to register
+Nuntius models with something like:
+
+    ```python
+    admin_site.register(nuntius.models.Campaign, nuntius.admin.CampaignAdmin)
+    admin_site.register(nuntius.models.CampaignSentEvent, nuntius.admin.CampaignSentEventAdmin)
+    ```
 
 ## Advanced usage
 
