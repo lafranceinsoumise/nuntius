@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-03-08 08:26-0600\n"
+"POT-Creation-Date: 2019-03-08 10:57-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,94 +22,121 @@ msgstr ""
 msgid "Send to everyone"
 msgstr "Envoyer à tout le monde"
 
-#: nuntius/admin/panels.py:90
+#: nuntius/admin/panels.py:95
 msgid "Content"
 msgstr "Contenu"
 
-#: nuntius/admin/panels.py:100
+#: nuntius/admin/panels.py:105
 msgid "Sending details"
 msgstr "Paramètres de l'envoi"
 
-#: nuntius/admin/panels.py:114
+#: nuntius/admin/panels.py:119
 msgid "Sending reports"
 msgstr "Paramètres de l'envoi"
 
-#: nuntius/admin/panels.py:189
+#: nuntius/admin/panels.py:190
 msgid "Subscribers"
 msgstr "Abonné⋅e⋅s"
 
-#: nuntius/admin/panels.py:200
+#: nuntius/admin/panels.py:201
 msgid "Sent to"
 msgstr "Envoyé à"
 
-#: nuntius/admin/panels.py:205
+#: nuntius/admin/panels.py:206
 msgid "Ok"
 msgstr "Ok"
 
-#: nuntius/admin/panels.py:210 nuntius/models.py:221 nuntius/models.py:269
+#: nuntius/admin/panels.py:211 nuntius/models.py:221 nuntius/models.py:269
 msgid "Bounced"
 msgstr "Bounce"
 
-#: nuntius/admin/panels.py:215 nuntius/models.py:222 nuntius/models.py:270
+#: nuntius/admin/panels.py:216 nuntius/models.py:222 nuntius/models.py:270
 msgid "Complained"
 msgstr "Plaintes"
 
-#: nuntius/admin/panels.py:220
+#: nuntius/admin/panels.py:221
 msgid "Blocked"
 msgstr "Bloqués"
 
-#: nuntius/admin/panels.py:225 nuntius/models.py:297
+#: nuntius/admin/panels.py:226 nuntius/models.py:297
 msgid "Open count"
 msgstr "Ouvertures"
 
-#: nuntius/admin/panels.py:230
-#| msgid "Open count"
+#: nuntius/admin/panels.py:231
 msgid "Unique open count"
 msgstr "Ouvertures (uniques)"
 
-#: nuntius/admin/panels.py:235 nuntius/models.py:298
+#: nuntius/admin/panels.py:236 nuntius/models.py:298
 msgid "Click count"
 msgstr "Clics"
 
-#: nuntius/admin/panels.py:240
+#: nuntius/admin/panels.py:241
 msgid "Unique click count"
 msgstr "Clics (uniques)"
 
-#: nuntius/admin/panels.py:249
+#: nuntius/admin/panels.py:250
 msgid "Connection to celery failed"
 msgstr "La connexion à celery a échoué"
 
-#: nuntius/admin/panels.py:251
+#: nuntius/admin/panels.py:252
 msgid "Send task state"
 msgstr "État de la tâche d'envoi"
 
-#: nuntius/admin/panels.py:258
+#: nuntius/admin/panels.py:259
 msgid "Pause"
 msgstr "Pause"
 
-#: nuntius/admin/panels.py:263 nuntius/admin/panels.py:267
+#: nuntius/admin/panels.py:264 nuntius/admin/panels.py:268
 msgid "Send"
 msgstr "Envoyer"
 
-#: nuntius/admin/panels.py:284
+#: nuntius/admin/panels.py:283
 msgid "Available variables (for first subscriber)"
 msgstr "Variables disponibles (exemples pour le premier abonné)"
 
-#: nuntius/admin/panels.py:295
+#: nuntius/admin/panels.py:294
 msgid "Default template"
 msgstr "Modèle par défaut"
 
-#: nuntius/admin/panels.py:316
+#: nuntius/admin/panels.py:315
 msgid "Access the editor"
 msgstr "Accéder à l'éditeur"
 
-#: nuntius/admin/panels.py:318
+#: nuntius/admin/panels.py:317
 msgid "Preview result"
 msgstr "Aperçu du résultat"
 
-#: nuntius/admin/panels.py:324
+#: nuntius/admin/panels.py:323
 msgid "HTML content"
 msgstr "Contenu HTML"
+
+#: nuntius/admin/panels.py:454 nuntius/models.py:281
+msgid "Subscriber"
+msgstr "Abonné⋅e"
+
+#: nuntius/admin/panels.py:465 nuntius/models.py:188 nuntius/models.py:286
+msgid "Campaign"
+msgstr "Campagne"
+
+#: nuntius/admin/panels.py:468 nuntius/models.py:303
+msgid "Sent events"
+msgstr "Évènements d'envoi"
+
+#: nuntius/admin/panels.py:482
+#, python-format
+msgid "Sent event for campaign %(campaign)s and subscriber %(subscriber)s"
+msgstr "Évènements d'envoi pour la campagne %(campaign)s et l'abonné⋅e %(subscriber)s"
+
+#: nuntius/admin/panels.py:486
+#, python-format
+msgid "Sent events for campaign %s"
+msgstr "Évènements d'envoi pour la campagne %s"
+
+#: nuntius/admin/panels.py:496
+#, fuzzy, python-format
+#| msgid "Name (invisible to subscribers)"
+msgid "Sent events for subscriber %s"
+msgstr "Évènements d'envoi pour l'abonné⋅e %s"
 
 #: nuntius/models.py:50
 msgid "Waiting"
@@ -179,10 +206,6 @@ msgstr "Contenu du message (HTML)"
 msgid "Message content (text)"
 msgstr "Contenu du message (texte)"
 
-#: nuntius/models.py:188 nuntius/models.py:286
-msgid "Campaign"
-msgstr "Campagne"
-
 #: nuntius/models.py:189
 msgid "Campaigns"
 msgstr "Campagne"
@@ -207,10 +230,6 @@ msgstr "Rejeté par le serveur"
 msgid "Blocked temporarily"
 msgstr "Bloqué temporairement"
 
-#: nuntius/models.py:281
-msgid "Subscriber"
-msgstr "Abonné⋅e"
-
 #: nuntius/models.py:285
 msgid "Email address at sending time"
 msgstr "Adresse email au moment de l'envoi"
@@ -230,7 +249,3 @@ msgstr "Identifiant attribué par le serveur d'envoi"
 #: nuntius/models.py:302
 msgid "Sent event"
 msgstr "Événement d'envoi"
-
-#: nuntius/models.py:303
-msgid "Sent events"
-msgstr "Évènements d'envoi"

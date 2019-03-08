@@ -20,6 +20,11 @@ from nuntius.celery import nuntius_celery_app
 from nuntius.models import segment_cts, Campaign, MosaicoImage, CampaignSentEvent
 from nuntius._tasks import send_campaign
 
+model = settings.NUNTIUS_SUBSCRIBER_MODEL
+subscriber_class = ContentType.objects.get(
+    app_label=model.split(".")[0], model=model.split(".")[1].lower()
+).model_class()
+
 
 class CampaignAdminForm(forms.ModelForm):
     segment = GenericModelChoiceField(
@@ -179,18 +184,14 @@ class CampaignAdmin(admin.ModelAdmin):
 
     def segment_subscribers(self, instance):
         if instance.segment is None:
-            model = settings.NUNTIUS_SUBSCRIBER_MODEL
-            model_class = ContentType.objects.get(
-                app_label=model.split(".")[0], model=model.split(".")[1].lower()
-            ).model_class()
-            return model_class.objects.count()
+            return subscriber_class.objects.count()
         return instance.segment.get_subscribers_count()
 
     segment_subscribers.short_description = _("Subscribers")
 
     def sent_to(self, instance):
         return format_html(
-            "<a href={}>{}</a>",
+            '<a href="{}">{}</a>',
             reverse("admin:nuntius_campaignsentevent_changelist")
             + "?campaign_id__exact="
             + str(instance.pk),
@@ -270,11 +271,7 @@ class CampaignAdmin(admin.ModelAdmin):
         if instance.segment is not None:
             qs = instance.segment.get_subscribers_queryset()
         else:
-            model = settings.NUNTIUS_SUBSCRIBER_MODEL
-            model_class = ContentType.objects.get(
-                app_label=model.split(".")[0], model=model.split(".")[1].lower()
-            ).model_class()
-            qs = model_class.objects.all()
+            qs = subscriber_class.objects.all()
 
         data = qs.first().get_subscriber_data()
 
@@ -432,4 +429,70 @@ class CampaignSentEventAdmin(admin.ModelAdmin):
         return False
 
     actions = None
-    list_display = ("subscriber", "campaign", "email", "datetime", "result")
+    readonly_fields = ("subscriber_filter", "campaign_filter")
+    list_filter = ("result",)
+    list_display_links = None
+
+    def get_list_display(self, request):
+        list_display = ("email", "datetime", "result")
+        if request.GET.get("campaign_id__exact") is None:
+            list_display = ("campaign_filter", *list_display)
+        if request.GET.get("subscriber_id__exact") is None:
+            list_display = ("subscriber_filter", *list_display)
+
+        return list_display
+
+    def subscriber_filter(self, instance):
+        return format_html(
+            '<a href="{}">{}</a>',
+            reverse("admin:nuntius_campaignsentevent_changelist")
+            + "?subscriber_id__exact="
+            + str(instance.subscriber_id),
+            str(instance.subscriber),
+        )
+
+    subscriber_filter.short_description = _("Subscriber")
+
+    def campaign_filter(self, instance):
+        return format_html(
+            "<a href={}>{}</a>",
+            reverse("admin:nuntius_campaignsentevent_changelist")
+            + "?campaign_id__exact="
+            + str(instance.campaign_id),
+            str(instance.campaign),
+        )
+
+    campaign_filter.short_description = _("Campaign")
+
+    def changelist_view(self, request, extra_context=None):
+        title = _("Sent events")
+        campaign, subscriber = (None, None)
+
+        if request.GET.get("campaign_id__exact") is not None:
+            campaign = Campaign.objects.filter(
+                id=request.GET.get("campaign_id__exact")
+            ).first()
+        if request.GET.get("subscriber_id__exact") is not None:
+            subscriber = subscriber_class.objects.filter(
+                id=request.GET.get("subscriber_id__exact")
+            ).first()
+
+        if campaign and subscriber:
+            title = _(
+                f"Sent event for campaign %(campaign)s and subscriber %(subscriber)s"
+            ) % {"campaign": str(campaign), "subscriber": str(subscriber)}
+        elif campaign:
+            title = mark_safe(
+                _("Sent events for campaign %s")
+                % (
+                    format_html(
+                        '<a href="{}">{}</a>',
+                        reverse("admin:nuntius_campaign_change", args=[campaign.pk]),
+                        str(campaign),
+                    ),
+                )
+            )
+        elif subscriber:
+            title = _("Sent events for subscriber %s") % (str(subscriber),)
+
+        return super().changelist_view(request, extra_context={"title": title})
