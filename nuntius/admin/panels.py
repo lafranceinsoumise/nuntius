@@ -20,10 +20,12 @@ from nuntius.celery import nuntius_celery_app
 from nuntius.models import segment_cts, Campaign, MosaicoImage, CampaignSentEvent
 from nuntius._tasks import send_campaign
 
-model = settings.NUNTIUS_SUBSCRIBER_MODEL
-subscriber_class = ContentType.objects.get(
-    app_label=model.split(".")[0], model=model.split(".")[1].lower()
-).model_class()
+
+def subscriber_class():
+    model = settings.NUNTIUS_SUBSCRIBER_MODEL
+    return ContentType.objects.get(
+        app_label=model.split(".")[0], model=model.split(".")[1].lower()
+    ).model_class()
 
 
 class CampaignAdminForm(forms.ModelForm):
@@ -184,7 +186,7 @@ class CampaignAdmin(admin.ModelAdmin):
 
     def segment_subscribers(self, instance):
         if instance.segment is None:
-            return subscriber_class.objects.count()
+            return subscriber_class().objects.count()
         return instance.segment.get_subscribers_count()
 
     segment_subscribers.short_description = _("Subscribers")
@@ -271,7 +273,7 @@ class CampaignAdmin(admin.ModelAdmin):
         if instance.segment is not None:
             qs = instance.segment.get_subscribers_queryset()
         else:
-            qs = subscriber_class.objects.all()
+            qs = subscriber_class().objects.all()
 
         data = qs.first().get_subscriber_data()
 
@@ -473,9 +475,11 @@ class CampaignSentEventAdmin(admin.ModelAdmin):
                 id=request.GET.get("campaign_id__exact")
             ).first()
         if request.GET.get("subscriber_id__exact") is not None:
-            subscriber = subscriber_class.objects.filter(
-                id=request.GET.get("subscriber_id__exact")
-            ).first()
+            subscriber = (
+                subscriber_class()
+                .objects.filter(id=request.GET.get("subscriber_id__exact"))
+                .first()
+            )
 
         if campaign and subscriber:
             title = _(
