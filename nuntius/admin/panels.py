@@ -139,7 +139,6 @@ class CampaignAdmin(admin.ModelAdmin):
         "name",
         "message_subject",
         "segment",
-        "segment_subscribers",
         "status",
         "send_button",
         "sent_to",
