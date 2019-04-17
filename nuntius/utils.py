@@ -5,6 +5,10 @@ _h = html2text.HTML2Text()
 _h.ignore_images = True
 
 
+class NoCeleryError(Exception):
+    pass
+
+
 def generate_plain_text(html_message):
     return _h.handle(html_message)
 

@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from stdimage import StdImageField
 
 from nuntius.celery import nuntius_celery_app
-from nuntius.utils import generate_plain_text
+from nuntius.utils import generate_plain_text, NoCeleryError
 
 
 def segment_cts_q():
@@ -107,7 +107,7 @@ class Campaign(models.Model):
 
         # celery is down
         if res is None:
-            return
+            raise NoCeleryError()
 
         for host_tasks in res.values():
             if host_tasks.get(str(self.task_uuid)) is None:
@@ -117,10 +117,6 @@ class Campaign(models.Model):
             self._task = host_tasks[str(self.task_uuid)]
 
             return host_tasks[str(self.task_uuid)]
-
-        # celery is up but task is unkown
-        self.task_uuid = None
-        self.save(update_fields=["task_uuid"])
 
     def get_sent_count(self):
         return (
