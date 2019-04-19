@@ -380,7 +380,7 @@ class CampaignAdmin(admin.ModelAdmin):
 
         r = send_campaign.delay(pk)
         campaign.task_uuid = r.id
-        campaign.save()
+        campaign.save(update_fields=["task_uuid"])
 
         return redirect(reverse("admin:nuntius_campaign_change", args=[pk]))
 

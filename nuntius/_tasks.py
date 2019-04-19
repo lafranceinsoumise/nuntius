@@ -60,7 +60,7 @@ def send_campaign(campaign_pk):
     campaign.status = Campaign.STATUS_SENDING
     if campaign.first_sent is None:
         campaign.first_sent = timezone.now()
-    campaign.save()
+    campaign.save(update_fields=["status", "first_sent"])
 
     if campaign.segment is None:
         model = settings.NUNTIUS_SUBSCRIBER_MODEL
