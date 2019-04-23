@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name="nuntius",
-    version="0.3.15",
+    version="0.3.16",
     packages=find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,
     license="GPLv3",
