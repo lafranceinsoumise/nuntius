@@ -302,7 +302,7 @@ class CampaignAdmin(admin.ModelAdmin):
         if not instance.message_mosaico_data:
             default_template = (
                 settings.STATIC_URL
-                + "/nuntius/mosaico/templates/versafix-1/template-versafix-1.html",
+                + "/nuntius/templates/versafix-1/template-versafix-1.html",
                 _("Default template"),
             )
             templates = getattr(
