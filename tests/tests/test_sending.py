@@ -24,7 +24,7 @@ class SendingTestCase(TransactionTestCase):
             message_from_name="Test sender",
             message_subject="Subject",
         )
-        send_campaign(campaign.pk)
+        send_campaign(campaign.pk, "http://example.com")
 
         self.assertEqual(
             segment.get_subscribers_queryset().count(),
@@ -37,7 +37,7 @@ class SendingTestCase(TransactionTestCase):
 
     def test_send_campaign_without_segment(self):
         campaign = Campaign.objects.create()
-        send_campaign(campaign.pk)
+        send_campaign(campaign.pk, "http://example.com")
 
         self.assertEqual(
             TestSubscriber.objects.filter(
@@ -50,7 +50,7 @@ class SendingTestCase(TransactionTestCase):
     def test_send_only_to_subscribed(self):
         segment = TestSegment.objects.get(id="all_status")
         campaign = Campaign.objects.create(segment=segment)
-        send_campaign(campaign.pk)
+        send_campaign(campaign.pk, "https://example.com")
 
         self.assertEqual(
             segment.get_subscribers_queryset()
@@ -65,8 +65,8 @@ class SendingTestCase(TransactionTestCase):
         campaign = Campaign.objects.create(
             segment=segment, message_content_text="test [email] test"
         )
-        send_campaign(campaign.pk)
-        send_campaign(campaign.pk)
+        send_campaign(campaign.pk, "http://example.com")
+        send_campaign(campaign.pk, "http://example.com")
 
         self.assertEqual(
             segment.get_subscribers_queryset().count(),

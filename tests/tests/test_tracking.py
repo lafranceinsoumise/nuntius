@@ -50,7 +50,7 @@ class BounceTestCase(TestCase):
 
     def test_tracking(self):
         campaign = Campaign.objects.create()
-        send_campaign(campaign.pk)
+        send_campaign(campaign.pk, "http://example.com")
 
         c = CampaignSentEvent.objects.get(email="a@example.com")
         c.esp_message_id = ESP_MESSAGE_ID
