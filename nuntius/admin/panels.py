@@ -1,5 +1,4 @@
 import json
-import os
 
 from django.conf import settings
 from django.contrib import admin
@@ -19,7 +18,7 @@ from nuntius.admin.fields import GenericModelChoiceField
 from nuntius.celery import nuntius_celery_app
 from nuntius.models import segment_cts, Campaign, MosaicoImage, CampaignSentEvent
 from nuntius._tasks import send_campaign
-from nuntius.utils import NoCeleryError
+from nuntius.utils import NoCeleryError, build_absolute_uri
 
 
 def subscriber_class():
@@ -56,10 +55,10 @@ class MosaicoImageUploadView(CreateView):
         return {
             "name": image.file.name,
             "size": image.file.size,
-            "url": self.request.build_absolute_uri(image.file.url),
-            "deleteUrl": self.request.build_absolute_uri(image.file.url),
+            "url": build_absolute_uri(self.request, image.file.url),
+            "deleteUrl": build_absolute_uri(self.request, image.file.url),
             "deleteType": "DELETE",
-            "thumbnailUrl": self.request.build_absolute_uri(image.file.thumbnail.url),
+            "thumbnailUrl": build_absolute_uri(self.request, image.file.thumbnail.url),
         }
 
     def form_invalid(self, form):
@@ -378,7 +377,7 @@ class CampaignAdmin(admin.ModelAdmin):
         if campaign.task_uuid is not None:
             return redirect(reverse("admin:nuntius_campaign_change", args=[pk]))
 
-        r = send_campaign.delay(pk)
+        r = send_campaign.delay(pk, build_absolute_uri(request, location="/")[:-1])
         campaign.task_uuid = r.id
         campaign.save(update_fields=["task_uuid"])
 
@@ -401,9 +400,17 @@ class CampaignAdmin(admin.ModelAdmin):
             request=request,
             template="nuntius/editor.html",
             context={
-                "image_processor_backend_url": request.build_absolute_uri(
-                    reverse("nuntius_mosaico_image_processor")
-                )
+                "image_processor_backend_url": build_absolute_uri(
+                    request, reverse("nuntius_mosaico_image_processor")
+                ),
+                "save_url": reverse("admin:nuntius_campaign_mosaico_save", args=[pk]),
+                "image_upload_url": reverse(
+                    "admin:nuntius_campaign_mosaico_image_upload", args=[pk]
+                ),
+                "load_data_url": reverse(
+                    "admin:nuntius_campaign_mosaico_load", args=[pk]
+                ),
+                "change_url": reverse("admin:nuntius_campaign_change", args=[pk]),
             },
         )
 

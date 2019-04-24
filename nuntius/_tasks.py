@@ -13,6 +13,7 @@ from django.core import mail
 from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
 from django.template import Template, Context
+from django.urls import reverse
 from django.utils import timezone
 
 from nuntius.celery import nuntius_celery_app
@@ -54,8 +55,10 @@ def reset_connection(connection):
             break
 
 
-def insert_tracking_image(html_message):
-    img_url = settings.NUNTIUS_PUBLIC_URL + "/nuntius/open/{{ nuntius_tracking_id }}"
+def insert_tracking_image(public_url, html_message):
+    img_url = (
+        public_url + reverse("nuntius_mount_path") + "open/{{ nuntius_tracking_id }}"
+    )
     img = '<img src="{}" width="1" height="1" alt="nt">'.format(img_url)
     return re.sub(
         r"(<\/body\b)", img + r"\1", html_message, flags=re.MULTILINE | re.IGNORECASE
@@ -63,7 +66,7 @@ def insert_tracking_image(html_message):
 
 
 @nuntius_celery_app.task()
-def send_campaign(campaign_pk):
+def send_campaign(campaign_pk, public_url):
     campaign = Campaign.objects.get(pk=campaign_pk)
     campaign.status = Campaign.STATUS_SENDING
     if campaign.first_sent is None:
@@ -79,7 +82,9 @@ def send_campaign(campaign_pk):
     else:
         queryset = campaign.segment.get_subscribers_queryset()
 
-    message_content_html = insert_tracking_image(campaign.message_content_html)
+    message_content_html = insert_tracking_image(
+        public_url, campaign.message_content_html
+    )
 
     def send_message(connection, sent_event, message, retries=10):
         try:

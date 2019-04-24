@@ -1,5 +1,6 @@
 import html2text
 from PIL import Image, ImageDraw
+from django.conf import settings
 
 _h = html2text.HTML2Text()
 _h.ignore_images = True
@@ -51,3 +52,9 @@ def generate_placeholder(width, height):
     )
 
     return image
+
+
+def build_absolute_uri(request, location):
+    if hasattr(settings, "NUNTIUS_PUBLIC_URL"):
+        return settings.NUNTIUS_PUBLIC_URL + location
+    return request.build_absolute_uri(location)

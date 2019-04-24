@@ -32,10 +32,6 @@
           }
         });
 
-        var basePath = window.location.href;
-        if (basePath.lastIndexOf('#') > 0) basePath = basePath.substr(0, basePath.lastIndexOf('#'));
-        if (basePath.lastIndexOf('?') > 0) basePath = basePath.substr(0, basePath.lastIndexOf('?'));
-
         var plugins = [function(vm) {
           // Logo path
           vm.logoPath = '{% static "nuntius/mosaico/img/mosaico32.png" %}';
@@ -47,7 +43,7 @@
           };
           saveCmd.execute = function() {
             saveCmd.enabled(false);
-            var post = $.post(basePath + 'save/', {
+            var post = $.post('{{ save_url }}', {
               html: vm.exportHTML(),
               metadata: vm.exportMetadata(),
               content: vm.exportJSON()
@@ -57,7 +53,7 @@
             });
             post.success(function(res) {
               vm.notifier.success(vm.t('Saved!'));
-              location.href = basePath.replace('mosaico', 'change');
+              location.href = '{{ change_url }}';
             });
             post.always(function() {
               saveCmd.enabled(true);
@@ -69,12 +65,12 @@
         var config = {
           imgProcessorBackend: '{{ image_processor_backend_url }}',
           fileuploadConfig: {
-            url: basePath + 'upload/',
+            url: '{{ image_upload_url }}',
             paramName: 'file',
           }
         };
 
-        $.get(basePath + 'data/', null, function(data) {
+        $.get('{{ load_data_url }}', null, function(data) {
           if (data.metadata && data.content) {
             config.data = data;
           }
