@@ -386,7 +386,7 @@ class CampaignAdmin(admin.ModelAdmin):
 
     def pause_view(self, request, pk):
         campaign = Campaign.objects.get(pk=pk)
-        if self.instance.task_uuid is None:
+        if campaign.task_uuid is None:
             return redirect(reverse("admin:nuntius_campaign_change", args=[pk]))
 
         nuntius_celery_app.control.revoke(str(campaign.task_uuid), terminate=True)
