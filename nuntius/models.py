@@ -289,7 +289,11 @@ class CampaignSentEvent(models.Model):
         choices=CampaignSentStatusType.CHOICES,
     )
     esp_message_id = models.CharField(
-        _("ID given by the sending server"), unique=True, max_length=255, null=True
+        _("ID given by the sending server"),
+        unique=True,
+        max_length=255,
+        null=True,
+        editable=False,
     )
 
     def generate_tracking_id():
