@@ -77,7 +77,7 @@ def send_campaign(campaign_pk):
         except SMTPServerDisconnected as e:
             if retries == 0:
                 campaign.status = Campaign.STATUS_ERROR
-                campaign.save()
+                campaign.save(update_fields=["status"])
                 raise e
 
             reset_connection(connection)
@@ -157,8 +157,10 @@ def send_campaign(campaign_pk):
                     send_message(connection, sent_event, message)
 
             campaign.status = Campaign.STATUS_SENT
-            campaign.save()
+            campaign.task_uuid = None
+            campaign.save(update_fields=["status", "task_uuid"])
     except Exception as e:
         campaign.status = Campaign.STATUS_ERROR
-        campaign.save()
+        campaign.task_uuid = None
+        campaign.save(update_fields=["status", "task_uuid"])
         raise e
