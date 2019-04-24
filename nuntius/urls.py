@@ -1,7 +1,8 @@
 from django.urls import path
 
-from nuntius.views import mosaico_image_processor_view
+from nuntius.views import mosaico_image_processor_view, track_open_view
 
 urlpatterns = [
-    path("img/", mosaico_image_processor_view, name="nuntius_mosaico_image_processor")
+    path("img/", mosaico_image_processor_view, name="nuntius_mosaico_image_processor"),
+    path("open/<str:tracking_id>", track_open_view, name="nuntius_track_open"),
 ]

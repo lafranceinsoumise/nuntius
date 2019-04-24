@@ -1,4 +1,5 @@
 from functools import reduce
+from secrets import token_urlsafe
 
 from celery.app.control import Inspect
 from django.conf import settings
@@ -289,6 +290,13 @@ class CampaignSentEvent(models.Model):
     )
     esp_message_id = models.CharField(
         _("ID given by the sending server"), unique=True, max_length=255, null=True
+    )
+
+    def generate_tracking_id():
+        return token_urlsafe(9)
+
+    tracking_id = models.CharField(
+        max_length=12, default=generate_tracking_id, null=True, editable=False
     )
     open_count = models.IntegerField(_("Open count"), default=0, editable=False)
     click_count = models.IntegerField(_("Click count"), default=0, editable=False)

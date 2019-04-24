@@ -51,6 +51,7 @@ STATIC_URL = "/static/"
 USE_I18N = True
 LANGUAGE_CODE = os.environ.get("LANGUAGE_CODE", "en")
 
+NUNTIUS_PUBLIC_URL = "http://localhost:8000"
 NUNTIUS_SEGMENT_MODELS = ["tests.testsegment"]
 NUNTIUS_SUBSCRIBER_MODEL = "tests.TestSubscriber"
 NUNTIUS_CELERY_BROKER_URL = "redis://"

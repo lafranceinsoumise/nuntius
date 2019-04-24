@@ -1,11 +1,13 @@
+from base64 import b64decode
 from urllib.parse import urlparse
 
 from PIL import Image
 from django.conf import settings
+from django.db.models import F
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.http.request import validate_host
 
-from nuntius.models import MosaicoImage
+from nuntius.models import MosaicoImage, CampaignSentEvent
 from nuntius.utils import generate_placeholder
 
 
@@ -49,3 +51,15 @@ def mosaico_image_processor_view(request):
         return response
 
     return HttpResponseBadRequest()
+
+
+def track_open_view(request, tracking_id):
+    CampaignSentEvent.objects.filter(tracking_id=tracking_id).update(
+        open_count=F("open_count") + 1
+    )
+    return HttpResponse(
+        b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+        ),
+        content_type="image/png",
+    )

@@ -54,6 +54,14 @@ def reset_connection(connection):
             break
 
 
+def insert_tracking_image(html_message):
+    img_url = settings.NUNTIUS_PUBLIC_URL + "/nuntius/open/{{ nuntius_tracking_id }}"
+    img = '<img src="{}" width="1" height="1" alt="nt">'.format(img_url)
+    return re.sub(
+        r"(<\/body\b)", img + r"\1", html_message, flags=re.MULTILINE | re.IGNORECASE
+    )
+
+
 @nuntius_celery_app.task()
 def send_campaign(campaign_pk):
     campaign = Campaign.objects.get(pk=campaign_pk)
@@ -70,6 +78,8 @@ def send_campaign(campaign_pk):
         queryset = model_class.objects.all()
     else:
         queryset = campaign.segment.get_subscribers_queryset()
+
+    message_content_html = insert_tracking_image(campaign.message_content_html)
 
     def send_message(connection, sent_event, message, retries=10):
         try:
@@ -133,7 +143,10 @@ def send_campaign(campaign_pk):
                     if sent_event.result != CampaignSentStatusType.PENDING:
                         continue
 
-                    subscriber_data = subscriber.get_subscriber_data()
+                    subscriber_data = {
+                        "nuntius_tracking_id": sent_event.tracking_id,
+                        **subscriber.get_subscriber_data(),
+                    }
 
                     from_email = (
                         f"{campaign.message_from_name} <{campaign.message_from_email}>"
@@ -151,8 +164,7 @@ def send_campaign(campaign_pk):
                         connection=connection,
                     )
                     message.attach_alternative(
-                        replace_vars(campaign.message_content_html, subscriber_data),
-                        "text/html",
+                        replace_vars(message_content_html, subscriber_data), "text/html"
                     )
                     send_message(connection, sent_event, message)
 
