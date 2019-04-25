@@ -1,6 +1,7 @@
 import base64
 import json
 
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 
@@ -15,6 +16,7 @@ from tests.models import TestSubscriber
 
 
 ESP_MESSAGE_ID = "testmessageid"
+HTML_MESSAGE = '<body><a href="http://example.com">Link</a></body>'
 
 
 class BounceTestCase(TestCase):
@@ -40,7 +42,7 @@ class BounceTestCase(TestCase):
 
         self.assertEqual(subscriber.subscriber_status, BaseSubscriber.STATUS_BOUNCED)
 
-    def test_anymail_bounce(self):
+    def test_subscriber_bounce(self):
         response = self.post_webhook()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
@@ -48,7 +50,7 @@ class BounceTestCase(TestCase):
             BaseSubscriber.STATUS_BOUNCED,
         )
 
-    def test_tracking(self):
+    def test_bounce_tracking_on_campaign(self):
         campaign = Campaign.objects.create()
         send_campaign(campaign.pk, "http://example.com")
 
@@ -61,3 +63,35 @@ class BounceTestCase(TestCase):
         self.post_webhook()
         c.refresh_from_db()
         self.assertEqual(c.result, CampaignSentStatusType.BOUNCED)
+
+
+class TrackingTestCase(TestCase):
+    fixtures = ["subscribers.json"]
+
+    def test_open_tracking(self):
+        campaign = Campaign.objects.create(
+            message_content_html=HTML_MESSAGE, message_content_text="Test"
+        )
+        send_campaign(campaign.pk, "http://example.com")
+
+        tracking_id = CampaignSentEvent.objects.get(email="a@example.com").tracking_id
+        tracking_url = reverse(
+            "nuntius_track_open", kwargs={"tracking_id": tracking_id}
+        )
+
+        self.assertIn(
+            '<img src="http://example.com{}" width="1" height="1" alt="nt">'.format(
+                tracking_url
+            ),
+            str(mail.outbox[0].message()),
+        )
+
+        for i in range(2):
+            self.client.get(tracking_url)
+
+        self.assertEqual(
+            2,
+            CampaignSentEvent.objects.get(email="a@example.com").open_count,
+            campaign.get_open_count(),
+        )
+        self.assertEqual(1, campaign.get_unique_open_count())
