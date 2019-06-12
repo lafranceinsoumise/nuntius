@@ -1,9 +1,15 @@
+import hashlib
+import hmac
+from base64 import urlsafe_b64encode
+
 import html2text
 from PIL import Image, ImageDraw
 from django.conf import settings
 
 _h = html2text.HTML2Text()
 _h.ignore_images = True
+
+DIGEST_MOD = hashlib.sha1
 
 
 class NoCeleryError(Exception):
@@ -58,3 +64,18 @@ def build_absolute_uri(request, location):
     if hasattr(settings, "NUNTIUS_PUBLIC_URL"):
         return settings.NUNTIUS_PUBLIC_URL + location
     return request.build_absolute_uri(location)
+
+
+def sign_url(campaign, url):
+    return str(
+        urlsafe_b64encode(
+            hmac.new(campaign.signature_key, url.encode(), DIGEST_MOD).digest()
+        ).decode()
+    )
+
+
+def url_signature_is_valid(campaign, url, signature):
+    expected = sign_url(campaign, url)
+    if len(expected) != len(signature):
+        return False
+    return hmac.compare_digest(expected, signature)

@@ -1,5 +1,5 @@
 from functools import reduce
-from secrets import token_urlsafe
+from secrets import token_urlsafe, token_bytes
 
 from celery.app.control import Inspect
 from django.conf import settings
@@ -86,6 +86,11 @@ class Campaign(models.Model):
     segment = EditableGenericForeignKey("segment_content_type", "segment_id")
 
     status = fields.IntegerField(choices=STATUS_CHOICES, default=STATUS_WAITING)
+
+    def generate_signature_key():
+        return token_bytes(20)
+
+    signature_key = fields.BinaryField(max_length=20, default=generate_signature_key)
 
     def save(self, *args, **kwargs):
         if self.message_mosaico_data:

@@ -1,5 +1,6 @@
 import base64
 import json
+from urllib.parse import quote as url_quote
 
 from django.core import mail
 from django.test import TestCase
@@ -12,11 +13,13 @@ from nuntius.models import (
     BaseSubscriber,
 )
 from nuntius._tasks import send_campaign
+from nuntius.utils import sign_url
 from tests.models import TestSubscriber
 
 
+EXTERNAL_LINK = "http://otherexample.com"
 ESP_MESSAGE_ID = "testmessageid"
-HTML_MESSAGE = '<body><a href="http://example.com">Link</a></body>'
+HTML_MESSAGE = '<body><a href="' + EXTERNAL_LINK + '">Link</a></body>'
 
 
 class BounceTestCase(TestCase):
@@ -95,3 +98,34 @@ class TrackingTestCase(TestCase):
             campaign.get_open_count(),
         )
         self.assertEqual(1, campaign.get_unique_open_count())
+
+    def test_link_tracking(self):
+        campaign = Campaign.objects.create(
+            message_content_html=HTML_MESSAGE, message_content_text="Test"
+        )
+        send_campaign(campaign.pk, "http://example.com")
+
+        tracking_id = CampaignSentEvent.objects.get(email="a@example.com").tracking_id
+        tracking_url = reverse(
+            "nuntius_track_click",
+            kwargs={
+                "tracking_id": tracking_id,
+                "signature": sign_url(campaign, EXTERNAL_LINK),
+                "link": url_quote(EXTERNAL_LINK, safe=""),
+            },
+        )
+
+        self.assertIn(
+            '<a href="http://example.com{}">Link</a>'.format(tracking_url),
+            str(mail.outbox[0].message()),
+        )
+
+        for i in range(2):
+            res = self.client.get(tracking_url)
+
+        self.assertRedirects(res, EXTERNAL_LINK, fetch_redirect_response=False)
+        self.assertEqual(
+            2,
+            CampaignSentEvent.objects.get(email="a@example.com").click_count,
+            campaign.get_click_count(),
+        )

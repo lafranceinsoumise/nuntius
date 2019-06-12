@@ -4,8 +4,9 @@
 """
 
 import re
-from smtplib import SMTPServerDisconnected, SMTPRecipientsRefused, SMTPSenderRefused
+from smtplib import SMTPServerDisconnected, SMTPRecipientsRefused
 from time import sleep
+from urllib.parse import quote as url_quote
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -23,6 +24,7 @@ from nuntius.models import (
     CampaignSentStatusType,
     AbstractSubscriber,
 )
+from nuntius.utils import sign_url
 
 try:
     from anymail.exceptions import AnymailRecipientsRefused
@@ -32,11 +34,40 @@ except:
         pass
 
 
-def replace_vars(string, data):
+def replace_url(url, campaign, tracking_id, public_url):
+    return public_url + reverse(
+        "nuntius_track_click",
+        kwargs={
+            "tracking_id": tracking_id,
+            "signature": sign_url(campaign, url),
+            "link": url_quote(url, safe=""),
+        },
+    )
+
+
+def replace_vars(campaign, data, public_url):
     var_regex = re.compile(r"\[([-a-zA-Z_]+)\]")
     context = Context(data)
 
-    return Template(var_regex.sub(r"{{ \1 }}", string)).render(context=context)
+    html_rendered_content = Template(
+        var_regex.sub(r"{{ \1 }}", campaign.message_content_html)
+    ).render(context=context)
+
+    html_rendered_content = re.sub(
+        r"(<a[^>]* href\s*=[\s\"']*)(http[^\"'>\s]+)",
+        lambda match: match.group(1)
+        + replace_url(
+            match.group(2), campaign, data["nuntius_tracking_id"], public_url
+        ),
+        html_rendered_content,
+        flags=re.MULTILINE | re.IGNORECASE,
+    )
+
+    text_rendered_content = Template(
+        var_regex.sub(r"{{ \1 }}", campaign.message_content_text)
+    ).render(context=context)
+
+    return text_rendered_content, html_rendered_content
 
 
 def reset_connection(connection):
@@ -82,7 +113,7 @@ def send_campaign(campaign_pk, public_url):
     else:
         queryset = campaign.segment.get_subscribers_queryset()
 
-    message_content_html = insert_tracking_image(
+    campaign.message_content_html = insert_tracking_image(
         public_url, campaign.message_content_html
     )
 
@@ -158,19 +189,18 @@ def send_campaign(campaign_pk, public_url):
                         if campaign.message_from_name
                         else campaign.message_from_email
                     )
+                    text_body, html_body = replace_vars(
+                        campaign, subscriber_data, public_url
+                    )
                     message = EmailMultiAlternatives(
                         subject=campaign.message_subject,
-                        body=replace_vars(
-                            campaign.message_content_text, subscriber_data
-                        ),
+                        body=text_body,
                         from_email=from_email,
                         to=[email],
                         reply_to=campaign.message_reply_to_email,
                         connection=connection,
                     )
-                    message.attach_alternative(
-                        replace_vars(message_content_html, subscriber_data), "text/html"
-                    )
+                    message.attach_alternative(html_body, "text/html")
                     send_message(connection, sent_event, message)
 
             campaign.status = Campaign.STATUS_SENT

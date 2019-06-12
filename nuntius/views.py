@@ -1,14 +1,16 @@
 from base64 import b64decode
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 from PIL import Image
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.db.models import F
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, Http404
 from django.http.request import validate_host
+from django.shortcuts import redirect, get_object_or_404
 
 from nuntius.models import MosaicoImage, CampaignSentEvent
-from nuntius.utils import generate_placeholder
+from nuntius.utils import generate_placeholder, url_signature_is_valid
 
 
 def mosaico_image_processor_view(request):
@@ -63,3 +65,21 @@ def track_open_view(request, tracking_id):
         ),
         content_type="image/png",
     )
+
+
+def track_click_view(request, tracking_id, link, signature):
+    campaign_sent_event = get_object_or_404(CampaignSentEvent, tracking_id=tracking_id)
+
+    CampaignSentEvent.objects.filter(tracking_id=tracking_id).update(
+        click_count=F("click_count") + 1
+    )
+
+    url = parse_qs("link=" + link).get("link")
+
+    if url is None or len(url) != 1:
+        raise
+
+    if not url_signature_is_valid(campaign_sent_event.campaign, url[0], signature):
+        raise PermissionDenied()
+
+    return redirect(url[0])
