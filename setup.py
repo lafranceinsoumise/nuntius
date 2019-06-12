@@ -17,7 +17,8 @@ setup(
     long_description=README,
     url="https://github.com/lafranceinsoumise/nuntius",
     author="Jill Royer",
-    author_email="perso@guilro.com",
+    python_requires="~=3.6",
+    author_email="perso@jillroyer.me",
     install_requires=("celery", "pillow", "html2text"),
     classifiers=[
         "Development Status :: 4 - Beta",
