@@ -442,6 +442,20 @@ class CampaignAdmin(admin.ModelAdmin):
         return HttpResponse()
 
 
+class TrackingFilter(admin.SimpleListFilter):
+    title = _("Tracking")
+    parameter_name = "tracking"
+
+    def lookups(self, request, model_admin):
+        return ("O", _("Opened")), ("C", _("Clicked"))
+
+    def queryset(self, request, queryset):
+        if self.value() == "O":
+            return queryset.exclude(open_count=0)
+        if self.value() == "C":
+            return queryset.exclude(click_count=0)
+
+
 @admin.register(CampaignSentEvent)
 class CampaignSentEventAdmin(admin.ModelAdmin):
     def has_change_permission(self, *args, **kwargs):
@@ -452,11 +466,11 @@ class CampaignSentEventAdmin(admin.ModelAdmin):
 
     actions = None
     readonly_fields = ("subscriber_filter", "campaign_filter")
-    list_filter = ("result",)
+    list_filter = ("result", TrackingFilter)
     list_display_links = None
 
     def get_list_display(self, request):
-        list_display = ("email", "datetime", "result")
+        list_display = ("email", "datetime", "result", "open_count", "click_count")
         if request.GET.get("campaign_id__exact") is None:
             list_display = ("campaign_filter", *list_display)
         if request.GET.get("subscriber_id__exact") is None:
