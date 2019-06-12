@@ -31,3 +31,6 @@ class TestSubscriber(BaseSubscriber):
             "segments": ", ".join(str(s) for s in self.segments.all()),
             **super().get_subscriber_data(),
         }
+
+    def __str__(self):
+        return self.get_subscriber_email()
