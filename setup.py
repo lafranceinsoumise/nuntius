@@ -15,6 +15,7 @@ setup(
     license="GPLv3",
     description="A model agnostic Django newsletter app integrating Mosaico.",
     long_description=README,
+    long_description_content_type="text/markdown",
     url="https://github.com/lafranceinsoumise/nuntius",
     author="Jill Royer",
     python_requires="~=3.6",
