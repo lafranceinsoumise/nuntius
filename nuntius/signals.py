@@ -44,5 +44,5 @@ else:
         except CampaignSentEvent.DoesNotExist:
             pass
 
-            if actions[event.event_type][1] is not None:
-                update_subscriber(event.recipient, actions[event.event_type][1])
+        if actions[event.event_type][1] is not None:
+            update_subscriber(event.recipient, actions[event.event_type][1])
