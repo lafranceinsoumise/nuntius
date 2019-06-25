@@ -6,7 +6,9 @@ from nuntius.models import CampaignSentEvent, CampaignSentStatusType, AbstractSu
 
 try:
     from anymail.signals import tracking, EventType
-
+except ImportError:
+    pass
+else:
     @receiver(tracking, dispatch_uid="nuntius_anymail_tracking")
     def handle_anymail(sender, event, esp_name, **kwargs):
         actions = {
@@ -44,7 +46,3 @@ try:
 
             if actions[event.event_type][1] is not None:
                 update_subscriber(event.recipient, actions[event.event_type][1])
-
-
-except ImportError:
-    pass
