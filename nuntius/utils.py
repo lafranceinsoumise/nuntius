@@ -69,7 +69,7 @@ def build_absolute_uri(request, location):
 def sign_url(campaign, url):
     return str(
         urlsafe_b64encode(
-            hmac.new(campaign.signature_key, url.encode(), DIGEST_MOD).digest()
+            hmac.new(bytes(campaign.signature_key), url.encode(), DIGEST_MOD).digest()
         ).decode()
     )
 

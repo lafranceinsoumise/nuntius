@@ -24,17 +24,87 @@ HTML_MESSAGE = '<body><a href="' + EXTERNAL_LINK + '">Link</a></body>'
 
 class BounceTestCase(TestCase):
     fixtures = ["subscribers.json"]
-    sendgrid_payload = [
-        {"email": "a@example.com", "event": "bounce", "anymail_id": ESP_MESSAGE_ID}
-    ]
+    sendgrid_payload = json.dumps(
+        [{"email": "a@example.com", "event": "bounce", "anymail_id": ESP_MESSAGE_ID}]
+    )
+    amazon_soft_bounce_payload = {
+        "Type": "Notification",
+        "MessageId": ESP_MESSAGE_ID,
+        "Message": json.dumps(
+            {
+                "notificationType": "Bounce",
+                "bounce": {
+                    "bounceType": "Transient",
+                    "bounceSubType": "ContentRejected",
+                    "bouncedRecipients": [
+                        {
+                            "emailAddress": "a@example.com",
+                            "action": "failed",
+                            "status": "5.3.0",
+                            "diagnosticCode": "smtp; 550 spam detected",
+                        }
+                    ],
+                    "timestamp": "2019-06-05T14:56:13.363Z",
+                    "feedbackId": "...",
+                    "remoteMtaIp": "x.x.x.x",
+                    "reportingMTA": "dsn; a6-136.smtp-out.eu-west-1.amazonses.com",
+                },
+                "mail": {
+                    "timestamp": "2019-06-05T14:56:13.000Z",
+                    "source": "source@example.com",
+                    "sourceArn": "arn:aws:ses:eu-west-1:...",
+                    "sourceIp": "x.x.x.x",
+                    "sendingAccountId": "...",
+                    "messageId": ESP_MESSAGE_ID,
+                    "destination": ["a@example.com"],
+                },
+            }
+        ),
+    }
 
-    def post_webhook(self):
+    amazon_hard_bounce_payload = {
+        "Type": "Notification",
+        "MessageId": ESP_MESSAGE_ID,
+        "Message": json.dumps(
+            {
+                "notificationType": "Bounce",
+                "bounce": {
+                    "bounceType": "Permanent",
+                    "bounceSubType": "General",
+                    "bouncedRecipients": [
+                        {
+                            "emailAddress": "a@example.com",
+                            "action": "failed",
+                            "status": "5.1.1",
+                            "diagnosticCode": "smtp; 550 5.1.1 user unknown (UserSearch)",
+                        }
+                    ],
+                    "timestamp": "2019-06-04T14:50:05.578Z",
+                    "feedbackId": "...",
+                    "remoteMtaIp": "x.x.x.x",
+                    "reportingMTA": "dsn; a6-77.smtp-out.eu-west-1.amazonses.com",
+                },
+                "mail": {
+                    "timestamp": "2019-06-04T14:50:04.000Z",
+                    "source": "source@example.com",
+                    "sourceArn": "arn:aws:ses:eu-west-1:...",
+                    "sourceIp": "x.x.x.x",
+                    "sendingAccountId": "...",
+                    "messageId": ESP_MESSAGE_ID,
+                    "destination": ["a@example.com"],
+                },
+            }
+        ),
+    }
+
+    def post_webhook(self, url, data, **headers):
         return self.client.post(
-            reverse("anymail:sendgrid_tracking_webhook"),
-            json.dumps(self.sendgrid_payload),
+            url,
+            data,
             content_type="application/json",
             HTTP_AUTHORIZATION="Basic "
             + (base64.b64encode(b"test:test").decode("utf-8")),
+            **headers
         )
 
     def test_bounce_basic_model(self):
@@ -45,13 +115,57 @@ class BounceTestCase(TestCase):
 
         self.assertEqual(subscriber.subscriber_status, BaseSubscriber.STATUS_BOUNCED)
 
-    def test_subscriber_bounce(self):
-        response = self.post_webhook()
+    def test_sendgrid_bounce(self):
+        response = self.post_webhook(
+            reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             TestSubscriber.objects.get(email="a@example.com").subscriber_status,
             BaseSubscriber.STATUS_BOUNCED,
         )
+
+    def test_amazon_soft_bounce(self):
+        campaign = Campaign.objects.create()
+        send_campaign(campaign.pk, "http://example.com")
+        c = CampaignSentEvent.objects.get(email="a@example.com")
+        c.esp_message_id = ESP_MESSAGE_ID
+        c.save()
+
+        response = self.post_webhook(
+            reverse("anymail:amazon_ses_tracking_webhook"),
+            self.amazon_soft_bounce_payload,
+            HTTP_X_AMZ_SNS_MESSAGE_ID=ESP_MESSAGE_ID,
+            HTTP_X_AMZ_SNS_MESSAGE_TYPE="Notification",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            TestSubscriber.objects.get(email="a@example.com").subscriber_status,
+            BaseSubscriber.STATUS_SUBSCRIBED,
+        )
+        c.refresh_from_db()
+        self.assertEqual(c.result, CampaignSentStatusType.BOUNCED)
+
+    def test_amazon_hard_bounce(self):
+        campaign = Campaign.objects.create()
+        send_campaign(campaign.pk, "http://example.com")
+        c = CampaignSentEvent.objects.get(email="a@example.com")
+        c.esp_message_id = ESP_MESSAGE_ID
+        c.save()
+
+        response = self.post_webhook(
+            reverse("anymail:amazon_ses_tracking_webhook"),
+            self.amazon_hard_bounce_payload,
+            HTTP_X_AMZ_SNS_MESSAGE_ID=ESP_MESSAGE_ID,
+            HTTP_X_AMZ_SNS_MESSAGE_TYPE="Notification",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            TestSubscriber.objects.get(email="a@example.com").subscriber_status,
+            BaseSubscriber.STATUS_BOUNCED,
+        )
+        c.refresh_from_db()
+        self.assertEqual(c.result, CampaignSentStatusType.BOUNCED)
 
     def test_bounce_tracking_on_campaign(self):
         campaign = Campaign.objects.create()
@@ -63,7 +177,9 @@ class BounceTestCase(TestCase):
 
         self.assertEqual(c.result, CampaignSentStatusType.UNKNOWN)
 
-        self.post_webhook()
+        self.post_webhook(
+            reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload
+        )
         c.refresh_from_db()
         self.assertEqual(c.result, CampaignSentStatusType.BOUNCED)
 
