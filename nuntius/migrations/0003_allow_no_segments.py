@@ -14,7 +14,6 @@ class Migration(migrations.Migration):
             model_name="campaign",
             name="segment_content_type",
             field=models.ForeignKey(
-                limit_choices_to=nuntius.models.segment_cts_q,
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 to="contenttypes.ContentType",

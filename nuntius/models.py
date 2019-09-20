@@ -1,9 +1,7 @@
-from functools import reduce
 from secrets import token_urlsafe, token_bytes
 
 from celery.app.control import Inspect
 from django.conf import settings
-from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -14,32 +12,6 @@ from stdimage import StdImageField
 
 from nuntius.celery import nuntius_celery_app
 from nuntius.utils import generate_plain_text, NoCeleryError
-
-
-def segment_cts_q():
-    segment_cts_qs = [
-        Q(app_label=models.split(".")[0], model=models.split(".")[1])
-        for models in settings.NUNTIUS_SEGMENT_MODELS
-    ]
-    return reduce(lambda q1, q2: q1 | q2, segment_cts_qs)
-
-
-def segment_cts():
-    if settings.NUNTIUS_SEGMENT_MODELS == []:
-        return ContentType.objects.none()
-    return ContentType.objects.filter(segment_cts_q())
-
-
-class EditableGenericForeignKey(GenericForeignKey):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.editable = True
-
-    def save_object_data(self, value):
-        return value
-
-    def value_from_object(self, obj):
-        return getattr(obj, self.name)
 
 
 class Campaign(models.Model):
@@ -79,11 +51,12 @@ class Campaign(models.Model):
     message_content_html = fields.TextField(_("Message content (HTML)"), blank=True)
     message_content_text = fields.TextField(_("Message content (text)"), blank=True)
 
-    segment_content_type = models.ForeignKey(
-        ContentType, on_delete=models.PROTECT, limit_choices_to=segment_cts_q, null=True
+    segment = models.ForeignKey(
+        to=settings.NUNTIUS_SEGMENT_MODEL,
+        verbose_name=_("Subscriber segment"),
+        on_delete=models.SET_NULL,
+        null=True,
     )
-    segment_id = models.CharField(max_length=255, null=True)
-    segment = EditableGenericForeignKey("segment_content_type", "segment_id")
 
     status = fields.IntegerField(choices=STATUS_CHOICES, default=STATUS_WAITING)
 
@@ -200,6 +173,9 @@ class BaseSegment:
 
     def get_subscribers_count(self):
         raise NotImplementedError
+
+    class Meta:
+        swappable = "NUNTIUS_SEGMENT_MODEL"
 
 
 class BaseSubscriberManager(models.Manager):

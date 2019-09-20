@@ -103,8 +103,8 @@ Nuntius models with something like:
 
 ### List segments
 
-If you want to have more control on your recipients, you can create
-segment models.
+If you want to have more control on your recipients, you can create a
+segment model.
 
 One example of segment is a simple model which holds a Many-to-Many relation
 to subscribers.
@@ -140,9 +140,9 @@ class LastLoginDateSegment(BaseSegment, models.Model):
     have to be accurate. If you want to have it accurate, you should however take
     your subscribers status into account.
 
-Then, add your segment model(s) to Nuntius settings :
+Then, add your segment model to Nuntius settings :
 ````python
-NUNTIUS_SEGMENT_MODELS = ['myapp.lastlogindatesegment']
+NUNTIUS_SEGMENT_MODEL = 'myapp.lastlogindatesegment'
 ````
 
 ### Custom template

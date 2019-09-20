@@ -14,9 +14,8 @@ from django.utils.translation import gettext as _
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import CreateView
 
-from nuntius.admin.fields import GenericModelChoiceField
 from nuntius.celery import nuntius_celery_app
-from nuntius.models import segment_cts, Campaign, MosaicoImage, CampaignSentEvent
+from nuntius.models import Campaign, MosaicoImage, CampaignSentEvent
 from nuntius._tasks import send_campaign
 from nuntius.utils import NoCeleryError, build_absolute_uri
 
@@ -26,25 +25,6 @@ def subscriber_class():
     return ContentType.objects.get(
         app_label=model.split(".")[0], model=model.split(".")[1].lower()
     ).model_class()
-
-
-class CampaignAdminForm(forms.ModelForm):
-    segment = GenericModelChoiceField(
-        querysets=lambda: [ct.model_class().objects.all() for ct in set(segment_cts())],
-        required=False,
-    )
-
-    def clean(self):
-        cleaned_data = super().clean()
-        segment = cleaned_data.get("segment")
-
-        if segment:
-            self.instance.segment = segment
-
-        return cleaned_data
-
-    class Meta:
-        exclude = ("segment_content_type", "segment_id")
 
 
 class MosaicoImageUploadView(CreateView):
@@ -77,6 +57,7 @@ class MosaicoImageUploadView(CreateView):
 
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
+    autocomplete_fields = ("segment",)
     fieldsets = (
         (
             None,
@@ -143,7 +124,6 @@ class CampaignAdmin(admin.ModelAdmin):
         "sent_to",
     )
     list_filter = ("status",)
-    form = CampaignAdminForm
     readonly_fields = (
         "created",
         "updated",

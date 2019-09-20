@@ -11,4 +11,5 @@ class TestSubscriberAdmin(admin.ModelAdmin):
 
 @admin.register(TestSegment)
 class TestSegmentAdmin(admin.ModelAdmin):
+    search_fields = ("name",)
     pass
