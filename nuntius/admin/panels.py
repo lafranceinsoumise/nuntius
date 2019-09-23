@@ -2,8 +2,6 @@ import json
 
 from django.conf import settings
 from django.contrib import admin
-from django import forms
-from django.contrib.contenttypes.models import ContentType
 from django.http import HttpResponseBadRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
@@ -55,7 +53,6 @@ class MosaicoImageUploadView(CreateView):
         )
 
 
-@admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
     autocomplete_fields = ("segment",)
     fieldsets = (
@@ -436,7 +433,6 @@ class TrackingFilter(admin.SimpleListFilter):
             return queryset.exclude(click_count=0)
 
 
-@admin.register(CampaignSentEvent)
 class CampaignSentEventAdmin(admin.ModelAdmin):
     def has_change_permission(self, *args, **kwargs):
         return False
@@ -514,3 +510,8 @@ class CampaignSentEventAdmin(admin.ModelAdmin):
             title = _("Sent events for subscriber %s") % (str(subscriber),)
 
         return super().changelist_view(request, extra_context={"title": title})
+
+
+if not getattr(settings, "NUNTIUS_DISABLE_DEFAULT_ADMIN", False):
+    admin.site.register(Campaign, CampaignAdmin)
+    admin.site.register(CampaignSentEvent, CampaignSentEventAdmin)
