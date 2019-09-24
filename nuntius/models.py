@@ -60,7 +60,7 @@ class Campaign(models.Model):
 
     status = fields.IntegerField(choices=STATUS_CHOICES, default=STATUS_WAITING)
 
-    def generate_signature_key():
+    def generate_signature_key(self):
         return token_bytes(20)
 
     signature_key = fields.BinaryField(max_length=20, default=generate_signature_key)
