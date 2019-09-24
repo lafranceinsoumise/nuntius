@@ -1,2 +1,2 @@
 default_app_config = "nuntius.apps.NuntiusConfig"
-__version__ = "0.4.1"
+__version__ = "0.4.2"
