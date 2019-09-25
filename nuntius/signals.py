@@ -1,8 +1,12 @@
+import logging
+
 from django.db import transaction
 from django.dispatch import receiver
 
 from nuntius.actions import update_subscriber
 from nuntius.models import CampaignSentEvent, CampaignSentStatusType, AbstractSubscriber
+
+logger = logging.getLogger(__name__)
 
 try:
     from anymail.signals import tracking, EventType
@@ -30,6 +34,11 @@ else:
     @receiver(tracking, dispatch_uid="nuntius_anymail_tracking")
     def handle_anymail(sender, event, esp_name, **kwargs):
         campaign_action, subscriber_action = actions.get(event.event_type, (None, None))
+
+        if event.event_type == EventType.SENT:
+            logger.debug(event.event_type + " : " + str(event.esp_event))
+        else:
+            logger.info(event.event_type + " : " + str(event.esp_event))
 
         try:
             with transaction.atomic():

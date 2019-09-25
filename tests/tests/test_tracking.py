@@ -116,9 +116,10 @@ class BounceTestCase(TestCase):
         self.assertEqual(subscriber.subscriber_status, BaseSubscriber.STATUS_BOUNCED)
 
     def test_sendgrid_bounce(self):
-        response = self.post_webhook(
-            reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload
-        )
+        with self.assertLogs(logger="nuntius.signals", level="INFO"):
+            response = self.post_webhook(
+                reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload
+            )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             TestSubscriber.objects.get(email="a@example.com").subscriber_status,
@@ -132,12 +133,13 @@ class BounceTestCase(TestCase):
         c.esp_message_id = ESP_MESSAGE_ID
         c.save()
 
-        response = self.post_webhook(
-            reverse("anymail:amazon_ses_tracking_webhook"),
-            self.amazon_soft_bounce_payload,
-            HTTP_X_AMZ_SNS_MESSAGE_ID=ESP_MESSAGE_ID,
-            HTTP_X_AMZ_SNS_MESSAGE_TYPE="Notification",
-        )
+        with self.assertLogs(logger="nuntius.signals", level="INFO"):
+            response = self.post_webhook(
+                reverse("anymail:amazon_ses_tracking_webhook"),
+                self.amazon_soft_bounce_payload,
+                HTTP_X_AMZ_SNS_MESSAGE_ID=ESP_MESSAGE_ID,
+                HTTP_X_AMZ_SNS_MESSAGE_TYPE="Notification",
+            )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             TestSubscriber.objects.get(email="a@example.com").subscriber_status,
