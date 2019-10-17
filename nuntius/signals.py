@@ -14,26 +14,29 @@ except ImportError:
     pass
 else:
     actions = {
-        EventType.SENT: (CampaignSentStatusType.OK, None),
-        EventType.REJECTED: (CampaignSentStatusType.REJECTED, None),
-        EventType.FAILED: (CampaignSentStatusType.ERROR, None),
-        EventType.BOUNCED: (
-            CampaignSentStatusType.BOUNCED,
-            AbstractSubscriber.STATUS_BOUNCED,
-        ),
-        EventType.UNSUBSCRIBED: (
-            CampaignSentStatusType.UNSUBSCRIBED,
-            AbstractSubscriber.STATUS_UNSUBSCRIBED,
-        ),
-        EventType.COMPLAINED: (
-            CampaignSentStatusType.COMPLAINED,
-            AbstractSubscriber.STATUS_COMPLAINED,
-        ),
+        EventType.SENT: CampaignSentStatusType.OK,
+        EventType.REJECTED: CampaignSentStatusType.REJECTED,
+        EventType.FAILED: CampaignSentStatusType.ERROR,
+        EventType.BOUNCED: CampaignSentStatusType.BOUNCED,
+        EventType.UNSUBSCRIBED: CampaignSentStatusType.UNSUBSCRIBED,
+        EventType.COMPLAINED: CampaignSentStatusType.COMPLAINED,
     }
 
     @receiver(tracking, dispatch_uid="nuntius_anymail_tracking")
     def handle_anymail(sender, event, esp_name, **kwargs):
-        campaign_action, subscriber_action = actions.get(event.event_type, (None, None))
+        campaign_status = actions.get(event.event_type, (None, None))
+
+        if event.event_type == EventType.BOUNCED:
+            # in cases of soft bounces (grouped by Anymail with hard bounces in the BOUNCED event type)
+            # we do not want to update the subscriber status
+            if (
+                esp_name == "Amazon SES"
+                and event.esp_event.get("bounce", {}).get("bounceType") != "Permanent"
+            ):
+                campaign_status = CampaignSentStatusType.BLOCKED
+
+            elif esp_name == "Postmark" and event.esp_event.get("Type") != "HardBounce":
+                campaign_status = CampaignSentStatusType.BLOCKED
 
         if event.event_type == EventType.SENT:
             logger.debug(event.event_type + " : " + str(event.esp_event))
@@ -45,8 +48,8 @@ else:
                 c = CampaignSentEvent.objects.select_for_update().get(
                     esp_message_id=event.message_id
                 )
-                if campaign_action is not None:
-                    c.result = campaign_action
+                if campaign_status is not None:
+                    c.result = campaign_status
                 if event.event_type == EventType.OPENED:
                     c.open_count = c.open_count + 1
                 if event.event_type == EventType.CLICKED:
@@ -55,17 +58,4 @@ else:
         except CampaignSentEvent.DoesNotExist:
             pass
 
-        if event.event_type == EventType.BOUNCED:
-            # in cases of soft bounces (grouped by Anymail with hard bounces in the BOUNCED event type)
-            # we do not want to update the subscriber status
-            if (
-                esp_name == "Amazon SES"
-                and event.esp_event.get("bounce", {}).get("bounceType") != "Permanent"
-            ):
-                subscriber_action = None
-
-            elif esp_name == "Postmark" and event.esp_event.get("Type") != "HardBounce":
-                subscriber_action = None
-
-        if subscriber_action is not None:
-            update_subscriber(event.recipient, subscriber_action)
+        update_subscriber(event.recipient, campaign_status)

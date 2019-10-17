@@ -146,7 +146,7 @@ class BounceTestCase(TestCase):
             BaseSubscriber.STATUS_SUBSCRIBED,
         )
         c.refresh_from_db()
-        self.assertEqual(c.result, CampaignSentStatusType.BOUNCED)
+        self.assertEqual(c.result, CampaignSentStatusType.BLOCKED)
 
     def test_amazon_hard_bounce(self):
         campaign = Campaign.objects.create()

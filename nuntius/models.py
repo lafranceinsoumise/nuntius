@@ -260,8 +260,10 @@ class CampaignSentEvent(models.Model):
         null=True,
         blank=True,
     )
-    email = models.EmailField(_("Email address at sending time"))
-    campaign = models.ForeignKey("Campaign", models.CASCADE, verbose_name=_("Campaign"))
+    email = models.EmailField(_("Email address at sending time"), db_index=True)
+    campaign = models.ForeignKey(
+        "Campaign", models.CASCADE, verbose_name=_("Campaign"), null=True, blank=True
+    )
     datetime = models.DateTimeField(_("Sending time"), auto_now_add=True)
     result = models.CharField(
         _("Operation result"),
