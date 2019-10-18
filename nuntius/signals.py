@@ -4,7 +4,7 @@ from django.db import transaction
 from django.dispatch import receiver
 
 from nuntius.actions import update_subscriber
-from nuntius.models import CampaignSentEvent, CampaignSentStatusType, AbstractSubscriber
+from nuntius.models import CampaignSentEvent, CampaignSentStatusType
 
 logger = logging.getLogger(__name__)
 
@@ -43,19 +43,16 @@ else:
         else:
             logger.info(event.event_type + " : " + str(event.esp_event))
 
-        try:
-            with transaction.atomic():
-                c = CampaignSentEvent.objects.select_for_update().get(
-                    esp_message_id=event.message_id
-                )
-                if campaign_status is not None:
-                    c.result = campaign_status
-                if event.event_type == EventType.OPENED:
-                    c.open_count = c.open_count + 1
-                if event.event_type == EventType.CLICKED:
-                    c.click_count = c.click_count + 1
-                c.save()
-        except CampaignSentEvent.DoesNotExist:
-            pass
+        with transaction.atomic():
+            c, is_create = CampaignSentEvent.objects.select_for_update().get_or_create(
+                email=event.recipient, esp_message_id=event.message_id
+            )
+            if campaign_status is not None:
+                c.result = campaign_status
+            if event.event_type == EventType.OPENED:
+                c.open_count = c.open_count + 1
+            if event.event_type == EventType.CLICKED:
+                c.click_count = c.click_count + 1
+            c.save()
 
         update_subscriber(event.recipient, campaign_status)

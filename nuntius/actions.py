@@ -1,12 +1,18 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.utils.timezone import now
 
-from nuntius.models import CampaignSentStatusType, AbstractSubscriber
+from nuntius.models import CampaignSentStatusType, AbstractSubscriber, CampaignSentEvent
+
+
+successful_sent = (CampaignSentStatusType.UNKNOWN, CampaignSentStatusType.OK)
 
 
 def update_subscriber(email, campaign_status):
     statuses = {
-        CampaignSentStatusType.BOUNCED: AbstractSubscriber.STATUS_BOUNCED,
+        CampaignSentStatusType.BOUNCED: None,
         CampaignSentStatusType.UNSUBSCRIBED: AbstractSubscriber.STATUS_UNSUBSCRIBED,
         CampaignSentStatusType.COMPLAINED: AbstractSubscriber.STATUS_COMPLAINED,
     }
@@ -18,4 +24,44 @@ def update_subscriber(email, campaign_status):
     model_class = ContentType.objects.get(
         app_label=model.split(".")[0], model=model.split(".")[1].lower()
     ).model_class()
-    model_class.objects.set_subscriber_status(email, statuses.get(campaign_status))
+
+    # if unsubscribe or spam, we change the status of the subscriber
+    if campaign_status != CampaignSentStatusType.BOUNCED:
+        model_class.objects.set_subscriber_status(email, statuses.get(campaign_status))
+        return
+
+    email_events = CampaignSentEvent.objects.filter(email=email)
+
+    # if first email sent is a bounce, we bounce forever
+    if not email_events.filter(result__in=successful_sent).exists():
+        model_class.objects.set_subscriber_status(
+            email, AbstractSubscriber.STATUS_BOUNCED
+        )
+        return
+
+    default_params = {"consecutive": 1, "duration": 7, "limit": 3}
+    params = {**default_params, **getattr(settings, "NUNTIUS_BOUNCE_PARAMS", dict())}
+
+    max_bounce_duration_ago = now() - timedelta(days=params["duration"])
+
+    recent_successful_sent = email_events.filter(
+        result__in=successful_sent, datetime__gt=max_bounce_duration_ago
+    ).exists()
+
+    # if there is at least a successful sending in `duration`, it is allowed up to `limit`
+    if (
+        recent_successful_sent
+        and email_events.filter(
+            result=CampaignSentStatusType.BOUNCED, datetime__gt=max_bounce_duration_ago
+        ).count()
+        <= params["limit"]
+    ):
+        return
+
+    # it is also ok if we have at least a successful sending in last `consecutive` + 1
+    for sent_event in email_events[: params["consecutive"] + 1]:
+        if sent_event.result in successful_sent:
+            return
+
+    # in all other case, we bounce
+    model_class.objects.set_subscriber_status(email, AbstractSubscriber.STATUS_BOUNCED)

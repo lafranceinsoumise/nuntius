@@ -22,11 +22,18 @@ ESP_MESSAGE_ID = "testmessageid"
 HTML_MESSAGE = '<body><a href="' + EXTERNAL_LINK + '">Link</a></body>'
 
 
-class BounceTestCase(TestCase):
-    fixtures = ["subscribers.json"]
-    sendgrid_payload = json.dumps(
-        [{"email": "a@example.com", "event": "bounce", "anymail_id": ESP_MESSAGE_ID}]
-    )
+class TrackingMixin:
+    def sendgrid_payload(self, esp_message_id=ESP_MESSAGE_ID):
+        return json.dumps(
+            [
+                {
+                    "email": "a@example.com",
+                    "event": "bounce",
+                    "anymail_id": esp_message_id,
+                }
+            ]
+        )
+
     amazon_soft_bounce_payload = {
         "Type": "Notification",
         "MessageId": ESP_MESSAGE_ID,
@@ -107,6 +114,10 @@ class BounceTestCase(TestCase):
             **headers
         )
 
+
+class BounceTestCase(TrackingMixin, TestCase):
+    fixtures = ["subscribers.json"]
+
     def test_bounce_basic_model(self):
         TestSubscriber.objects.set_subscriber_status(
             "a@example.com", BaseSubscriber.STATUS_BOUNCED
@@ -118,7 +129,7 @@ class BounceTestCase(TestCase):
     def test_sendgrid_bounce(self):
         with self.assertLogs(logger="nuntius.signals", level="INFO"):
             response = self.post_webhook(
-                reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload
+                reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload()
             )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
@@ -180,7 +191,7 @@ class BounceTestCase(TestCase):
         self.assertEqual(c.result, CampaignSentStatusType.UNKNOWN)
 
         self.post_webhook(
-            reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload
+            reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload()
         )
         c.refresh_from_db()
         self.assertEqual(c.result, CampaignSentStatusType.BOUNCED)

@@ -264,7 +264,7 @@ class CampaignSentEvent(models.Model):
     campaign = models.ForeignKey(
         "Campaign", models.CASCADE, verbose_name=_("Campaign"), null=True, blank=True
     )
-    datetime = models.DateTimeField(_("Sending time"), auto_now_add=True)
+    datetime = models.DateTimeField(_("Sending time"), auto_now_add=True, db_index=True)
     result = models.CharField(
         _("Operation result"),
         max_length=2,
@@ -292,6 +292,8 @@ class CampaignSentEvent(models.Model):
         unique_together = ("campaign", "subscriber")
         verbose_name = _("Sent event")
         verbose_name_plural = _("Sent events")
+        indexes = [models.Index(fields=["email", "datetime"])]
+        ordering = ["-datetime"]
 
 
 class MosaicoImage(models.Model):
