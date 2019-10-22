@@ -79,7 +79,7 @@ Celery is used to queue and send emails. Nuntius must have its own celery worker
     Be careful if you have your own celery app in your project using the same broker.
     You should have two separate workers for your tasks and for Nuntius tasks,
     because Nuntius worker needs a special configuration to allow Nuntius to report
-    correctly sendig state.
+    correctly sending state.
 
     Your worker for your project tasks must explicitely
     take tasks only from the default queue or any other queue you define.
@@ -187,6 +187,48 @@ model manager.
 
 Nuntius will automatically listen to Anymail signals and call this method approprietly.
 
+#### Bounce handling
+
+Most ESP gives you a reputation based on your hard bounce rate.
+Mosaico handles bounces smartly to change your subscribers status
+when necessary.
+
+If Nuntius receive a bounce event on an email address which has no
+other sending event, `set_subscriber_status(email, status)` is called
+with `AbstractSubscriber.STATUS_BOUNCED`.
+
+If a successful sending event exists for this address,
+three parameters are taken into account :
+* if during the last `duration` days, there has been no more bounces than `limit`
+and at least one successful sending, no action is taken
+* if there has been at least one successful sending in the last
+`consecutive` events, no action is taken
+* otherwise, `set_subscriber_status(email, status)` is called
+with `AbstractSubscriber.STATUS_BOUNCED`
+
+
+You can change thoses default values :
+```python
+NUNTIUS_BOUNCE_PARAMS = {
+    "consecutive": 1,
+    "duration": 7,
+    "limit": 3
+}
+```
+
+**Example :**
+
+* You send 3 campaigns a week. After a few months, a subscriber
+has a full mailbox. On first and second bounced campaign, no action
+is taken because there is a successful sending in the last 7 days,
+and no more than 3 bounces. On the third campaign, if the user has empty
+their mailbox, everything is fine. Otherwise, the subscriber is marked
+as permanently bounced.
+* You send one campaign a day. A user has a buggy email server.
+This week, the user has already 3 bounces. When you receive the 4th
+bounce, if there has been a successful sending just before,
+everything is fine. Otherwise, the subscriber is marked
+as permanently bounced.
 
 ## License
 
