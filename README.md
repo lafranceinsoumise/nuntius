@@ -232,6 +232,6 @@ as permanently bounced.
 
 ## License
 
-Copyright is owned by Guillaume Royer and Arthur Cheysson.
+Copyright is owned by Jill Royer and Arthur Cheysson.
 
 You can use Nuntius under GPLv3 terms.
