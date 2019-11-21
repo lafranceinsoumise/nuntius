@@ -1,11 +1,10 @@
 from datetime import timedelta
 
 from django.conf import settings
-from django.contrib.contenttypes.models import ContentType
 from django.utils.timezone import now
 
+from nuntius.admin import subscriber_class
 from nuntius.models import CampaignSentStatusType, AbstractSubscriber, CampaignSentEvent
-
 
 successful_sent = (CampaignSentStatusType.UNKNOWN, CampaignSentStatusType.OK)
 
@@ -20,10 +19,7 @@ def update_subscriber(email, campaign_status):
     if campaign_status not in statuses:
         return
 
-    model = settings.NUNTIUS_SUBSCRIBER_MODEL
-    model_class = ContentType.objects.get(
-        app_label=model.split(".")[0], model=model.split(".")[1].lower()
-    ).model_class()
+    model_class = subscriber_class()
 
     # if unsubscribe or spam, we change the status of the subscriber
     if campaign_status != CampaignSentStatusType.BOUNCED:

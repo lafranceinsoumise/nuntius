@@ -4,6 +4,7 @@ from django.db import transaction
 from django.dispatch import receiver
 
 from nuntius.actions import update_subscriber
+from nuntius.admin import subscriber_class
 from nuntius.models import CampaignSentEvent, CampaignSentStatusType
 
 logger = logging.getLogger(__name__)
@@ -44,8 +45,15 @@ else:
             logger.info(event.event_type + " : " + str(event.esp_event))
 
         with transaction.atomic():
+            defaults = dict()
+            if hasattr(subscriber_class().objects, "get_subscriber"):
+                defaults["subscriber"] = subscriber_class().objects.get_subscriber(
+                    event.recipient
+                )
             c, is_create = CampaignSentEvent.objects.select_for_update().get_or_create(
-                email=event.recipient, esp_message_id=event.message_id
+                email=event.recipient,
+                esp_message_id=event.message_id,
+                defaults={**defaults},
             )
             if campaign_status is not None:
                 c.result = campaign_status

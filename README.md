@@ -187,6 +187,25 @@ model manager.
 
 Nuntius will automatically listen to Anymail signals and call this method approprietly.
 
+##### Handling of non-nuntius events (optional)
+
+If you send emails to your subscribers by other means than Nuntius (for example,
+transactional emails), you will receive webhooks events which are not related to
+a campaign you sent. By default, Nuntius will create a campaign result event recording
+the email and the event type, but it will not link it to a campaign nor to a subscriber
+model.
+
+If you want your events to always be linked to a subscriber model, you must implement
+a `get_subscriber(self, email_address)` method on your subsciber model manager.
+
+
+##### BaseSubscriberManager
+
+Nuntius is packaged with a BaseSubscriberManager, which implements both
+`set_subscriber_status` and `get_subscriber`, assuming you have an `email` field
+on your subscriber model. This is the default manager used by `BaseSubscriber`.
+
+
 #### Bounce handling
 
 Most ESP gives you a reputation based on your hard bounce rate.

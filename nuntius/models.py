@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from django.db.models import fields, Q, Sum, Value
+from django.db.models import fields, Sum, Value
 from django.db.models.functions import Coalesce
 from django.utils.translation import gettext_lazy as _
 from stdimage import StdImageField
@@ -186,6 +186,9 @@ class BaseSubscriberManager(models.Manager):
             return
         subscriber.subscriber_status = status
         subscriber.save(update_fields=["subscriber_status"])
+
+    def get_subscriber(self, email_address):
+        return self.filter(email=email_address).last()
 
 
 class AbstractSubscriber:

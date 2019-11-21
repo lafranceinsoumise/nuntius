@@ -6,16 +6,15 @@ from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 
+from nuntius._tasks import send_campaign
 from nuntius.models import (
     Campaign,
     CampaignSentEvent,
     CampaignSentStatusType,
     BaseSubscriber,
 )
-from nuntius._tasks import send_campaign
 from nuntius.utils import sign_url
 from tests.models import TestSubscriber
-
 
 EXTERNAL_LINK = "http://otherexample.com"
 ESP_MESSAGE_ID = "testmessageid"
@@ -127,6 +126,7 @@ class BounceTestCase(TrackingMixin, TestCase):
         self.assertEqual(subscriber.subscriber_status, BaseSubscriber.STATUS_BOUNCED)
 
     def test_sendgrid_bounce(self):
+        self.assertEqual(CampaignSentEvent.objects.count(), 0)
         with self.assertLogs(logger="nuntius.signals", level="INFO"):
             response = self.post_webhook(
                 reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload()
@@ -135,6 +135,12 @@ class BounceTestCase(TrackingMixin, TestCase):
         self.assertEqual(
             TestSubscriber.objects.get(email="a@example.com").subscriber_status,
             BaseSubscriber.STATUS_BOUNCED,
+        )
+        event = CampaignSentEvent.objects.last()
+        self.assertIsNone(event.campaign)
+        self.assertEqual(event.email, "a@example.com")
+        self.assertEqual(
+            event.subscriber, TestSubscriber.objects.get(email="a@example.com")
         )
 
     def test_amazon_soft_bounce(self):
