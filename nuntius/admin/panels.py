@@ -457,6 +457,9 @@ class CampaignSentEventAdmin(admin.ModelAdmin):
         return list_display
 
     def subscriber_filter(self, instance):
+        if instance.subscriber is None:
+            return "-"
+
         return format_html(
             '<a href="{}">{}</a>',
             reverse("admin:nuntius_campaignsentevent_changelist")
@@ -468,6 +471,9 @@ class CampaignSentEventAdmin(admin.ModelAdmin):
     subscriber_filter.short_description = _("Subscriber")
 
     def campaign_filter(self, instance):
+        if instance.campaign is None:
+            return "-"
+
         return format_html(
             "<a href={}>{}</a>",
             reverse("admin:nuntius_campaignsentevent_changelist")
