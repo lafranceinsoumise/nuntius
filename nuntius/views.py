@@ -14,14 +14,23 @@ from nuntius.utils import generate_placeholder, url_signature_is_valid
 
 
 def mosaico_image_processor_view(request):
-    if request.GET.get("method") == "placeholder":
-        (width, height) = request.GET.get("params").split(",")
-        image = generate_placeholder(int(width), int(height))
+    params = request.GET.get("params", "").split(",")
+
+    if len(params) != 2:
+        return HttpResponseBadRequest()
+
+    (width, height) = (
+        int(params[0].replace("null", "0")),
+        int(params[1].replace("null", "0")),
+    )
+
+    if request.GET.get("method") == "placeholder" and width and height:
+        image = generate_placeholder(width, height)
         response = HttpResponse(content_type="image/png")
         image.save(response, "PNG")
         return response
 
-    if request.GET.get("src"):
+    if request.GET.get("src") and (width or height):
         src = request.GET.get("src")
         host = urlparse(src).netloc.split(":")[0]
         allowed_hosts = settings.ALLOWED_HOSTS
@@ -30,22 +39,17 @@ def mosaico_image_processor_view(request):
         if not validate_host(host, allowed_hosts):
             return HttpResponseBadRequest()
 
-        (width, height) = request.GET.get("params").split(",")
-        (width, height) = (
-            int(width.replace("null", "0")),
-            int(height.replace("null", "0")),
-        )
         image = MosaicoImage.objects.get(
             file=urlparse(src).path.replace(settings.MEDIA_URL, "", 1)
         )
         image = Image.open(image.file.path)
 
-        if width and not height:
-            ratio = width / image.size[0]
-        if height and not width:
-            ratio = height / image.size[1]
         if width and height:
             ratio = min(width / image.size[0], height / image.size[1])
+        elif width:
+            ratio = width / image.size[0]
+        elif height:
+            ratio = height / image.size[1]
 
         image.resize((round(size * ratio) for size in image.size), Image.ANTIALIAS)
         response = HttpResponse(content_type=f"image/{image.format.lower()}")
