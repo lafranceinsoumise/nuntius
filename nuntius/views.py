@@ -19,10 +19,13 @@ def mosaico_image_processor_view(request):
     if len(params) != 2:
         return HttpResponseBadRequest()
 
-    (width, height) = (
-        int(params[0].replace("null", "0")),
-        int(params[1].replace("null", "0")),
-    )
+    try:
+        (width, height) = (
+            int(params[0].replace("null", "0")),
+            int(params[1].replace("null", "0")),
+        )
+    except ValueError:
+        return HttpResponseBadRequest()
 
     if request.GET.get("method") == "placeholder" and width and height:
         image = generate_placeholder(width, height)
