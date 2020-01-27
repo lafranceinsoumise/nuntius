@@ -46,12 +46,11 @@ def replace_url(url, campaign, tracking_id, public_url):
 
 
 def replace_vars(campaign, data, public_url):
-    var_regex = re.compile(r"\[([-a-zA-Z_]+)\]")
     context = Context(data)
 
-    html_rendered_content = Template(
-        var_regex.sub(r"{{ \1 }}", campaign.message_content_html)
-    ).render(context=context)
+    html_rendered_content = Template(campaign.message_content_html).render(
+        context=context
+    )
 
     html_rendered_content = re.sub(
         r"(<a[^>]* href\s*=[\s\"']*)(http[^\"'>\s]+)",
@@ -63,9 +62,9 @@ def replace_vars(campaign, data, public_url):
         flags=re.MULTILINE | re.IGNORECASE,
     )
 
-    text_rendered_content = Template(
-        var_regex.sub(r"{{ \1 }}", campaign.message_content_text)
-    ).render(context=context)
+    text_rendered_content = Template(campaign.message_content_text).render(
+        context=context
+    )
 
     return text_rendered_content, html_rendered_content
 
