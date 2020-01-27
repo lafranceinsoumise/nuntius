@@ -63,7 +63,7 @@ class SendingTestCase(TransactionTestCase):
     def test_send_only_once(self):
         segment = TestSegment.objects.get(id="subscribed")
         campaign = Campaign.objects.create(
-            segment=segment, message_content_text="test [email] test"
+            segment=segment, message_content_text="test {{email}} test"
         )
         send_campaign(campaign.pk, "http://example.com")
         send_campaign(campaign.pk, "http://example.com")
