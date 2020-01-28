@@ -60,6 +60,15 @@ class Campaign(models.Model):
 
     status = fields.IntegerField(choices=STATUS_CHOICES, default=STATUS_WAITING)
 
+    utm_name = fields.CharField(
+        _("UTM name (visible to subscribers)"),
+        max_length=255,
+        blank=True,
+        help_text=_(
+            "Name used as utm_campaign parameter, used by various analytics tools."
+        ),
+    )
+
     def generate_signature_key():
         return token_bytes(20)
 

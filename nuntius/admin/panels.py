@@ -65,6 +65,7 @@ class CampaignAdmin(admin.ModelAdmin):
                     "created",
                     "updated",
                     "name",
+                    "utm_name",
                     "message_from_name",
                     "message_from_email",
                     "message_reply_to_name",

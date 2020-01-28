@@ -1,16 +1,16 @@
 from base64 import b64decode
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, unquote
 
 from PIL import Image
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db.models import F
-from django.http import HttpResponse, HttpResponseBadRequest, Http404
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.http.request import validate_host
 from django.shortcuts import redirect, get_object_or_404
 
 from nuntius.models import MosaicoImage, CampaignSentEvent
-from nuntius.utils import generate_placeholder, url_signature_is_valid
+from nuntius.utils import generate_placeholder, url_signature_is_valid, extend_query
 
 
 def mosaico_image_processor_view(request):
@@ -81,12 +81,15 @@ def track_click_view(request, tracking_id, link, signature):
         click_count=F("click_count") + 1
     )
 
-    url = parse_qs("link=" + link).get("link")
+    url = unquote(link)
 
-    if url is None or len(url) != 1:
-        raise
-
-    if not url_signature_is_valid(campaign_sent_event.campaign, url[0], signature):
+    if not url_signature_is_valid(campaign_sent_event.campaign, url, signature):
         raise PermissionDenied()
 
-    return redirect(url[0])
+    utm_campaign = campaign_sent_event.campaign.utm_name
+    url = extend_query(
+        url,
+        defaults={"utm_campaign": utm_campaign},
+        replace={"utm_source": "nuntius", "utm_medium": "email"},
+    )
+    return redirect(url)

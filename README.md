@@ -249,6 +249,25 @@ bounce, if there has been a successful sending just before,
 everything is fine. Otherwise, the subscriber is marked
 as permanently bounced.
 
+## Tracking
+
+Opening and clicks are tracked by adding a white pixel and replacing links in emails.
+
+Nuntius also adds [UTM parameters](https://en.wikipedia.org/wiki/UTM_parameters) to every URL with the following values:
+* `utm_source`: *"nuntius"*
+* `utm_medium`: *"email"*
+* `utm_campaign`: value configured by user at the campaign level
+* `utm_content`: *"link-{number}"* based on the link position in the email
+* `utm_term`: attribute `utm_term` of the segment object, or empty string if attribute does not exist
+
+In some situations, two details may be important for you:
+
+1. `utm_campaign`, `utm_content`, and `utm_term`, those are just defaults values, and can also be set directly on
+the link. `utm_source` and `utm_medium` will always be overwritten.
+2. `utm_content` and `utm_term` are set at sending time and cannot change afterwards. `utm_campaign` is
+set at click time, during the redirection from nuntius tracking URL to target URL, so if you change the value
+at the campaign level after sending, the value will change for all new clicks.
+
 ## License
 
 Copyright is owned by Jill Royer and Arthur Cheysson.

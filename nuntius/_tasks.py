@@ -4,6 +4,7 @@
 """
 
 import re
+from itertools import count
 from smtplib import SMTPServerDisconnected, SMTPRecipientsRefused
 from time import sleep
 from urllib.parse import quote as url_quote
@@ -24,7 +25,7 @@ from nuntius.models import (
     CampaignSentStatusType,
     AbstractSubscriber,
 )
-from nuntius.utils import sign_url
+from nuntius.utils import sign_url, extend_query
 
 try:
     from anymail.exceptions import AnymailRecipientsRefused
@@ -34,7 +35,15 @@ except:
         pass
 
 
-def replace_url(url, campaign, tracking_id, public_url):
+def replace_url(url, campaign, tracking_id, link_index, public_url):
+    url = extend_query(
+        url,
+        defaults={
+            "utm_content": link_index,
+            "utm_term": getattr(campaign.segment, "utm_term", ""),
+        },
+    )
+
     return public_url + reverse(
         "nuntius_track_click",
         kwargs={
@@ -52,11 +61,16 @@ def replace_vars(campaign, data, public_url):
         context=context
     )
 
+    link_counter = count()
     html_rendered_content = re.sub(
         r"(<a[^>]* href\s*=[\s\"']*)(http[^\"'>\s]+)",
         lambda match: match.group(1)
         + replace_url(
-            match.group(2), campaign, data["nuntius_tracking_id"], public_url
+            url=match.group(2),
+            campaign=campaign,
+            tracking_id=data["nuntius_tracking_id"],
+            link_index=f"link-{next(link_counter)}",
+            public_url=public_url,
         ),
         html_rendered_content,
         flags=re.MULTILINE | re.IGNORECASE,

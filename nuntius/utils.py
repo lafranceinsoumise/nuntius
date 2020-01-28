@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 from base64 import urlsafe_b64encode
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 import html2text
 from PIL import Image, ImageDraw
@@ -79,3 +80,18 @@ def url_signature_is_valid(campaign, url, signature):
     if len(expected) != len(signature):
         return False
     return hmac.compare_digest(expected, signature)
+
+
+def extend_query(url, defaults=None, replace=None):
+    url_parts = list(urlparse(url))
+    query = parse_qs(url_parts[4])
+
+    if defaults is not None:
+        for key, value in defaults.items():
+            query.setdefault(key, value)
+
+    if replace is not None:
+        query.update(**replace)
+
+    url_parts[4] = urlencode(query, doseq=True)
+    return urlunparse(url_parts)

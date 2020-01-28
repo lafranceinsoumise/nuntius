@@ -236,17 +236,20 @@ class TrackingTestCase(TestCase):
 
     def test_link_tracking(self):
         campaign = Campaign.objects.create(
-            message_content_html=HTML_MESSAGE, message_content_text="Test"
+            message_content_html=HTML_MESSAGE,
+            message_content_text="Test",
+            utm_name="tracked_campaign",
         )
         send_campaign(campaign.pk, "http://example.com")
 
         tracking_id = CampaignSentEvent.objects.get(email="a@example.com").tracking_id
+        encoded_tracking_query = "?utm_content=link-0&utm_term="
         tracking_url = reverse(
             "nuntius_track_click",
             kwargs={
                 "tracking_id": tracking_id,
-                "signature": sign_url(campaign, EXTERNAL_LINK),
-                "link": url_quote(EXTERNAL_LINK, safe=""),
+                "signature": sign_url(campaign, EXTERNAL_LINK + encoded_tracking_query),
+                "link": url_quote(EXTERNAL_LINK + encoded_tracking_query, safe=""),
             },
         )
 
@@ -258,7 +261,12 @@ class TrackingTestCase(TestCase):
         for i in range(2):
             res = self.client.get(tracking_url)
 
-        self.assertRedirects(res, EXTERNAL_LINK, fetch_redirect_response=False)
+        self.assertRedirects(
+            res,
+            EXTERNAL_LINK
+            + "?utm_campaign=tracked_campaign&utm_content=link-0&utm_source=nuntius&utm_medium=email",
+            fetch_redirect_response=False,
+        )
         self.assertEqual(
             2,
             CampaignSentEvent.objects.get(email="a@example.com").click_count,
