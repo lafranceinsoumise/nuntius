@@ -57,6 +57,10 @@ NUNTIUS_CELERY_BROKER_URL = "redis://"
 NUNTIUS_MOSAICO_TEMPLATES = [
     ("/static/mosaico_templates/versafix-2/template-versafix-2.html", "Custom template")
 ]
+NUNTIUS_DEFAULT_FROM_EMAIL = "test@example.com"
+NUNTIUS_DEFAULT_FROM_NAME = "Sender"
+NUNTIUS_DEFAULT_REPLY_TO_EMAIL = "replyto@example.com"
+NUNTIUS_DEFAULT_REPLY_TO_NAME = "Reply to me"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = "media"

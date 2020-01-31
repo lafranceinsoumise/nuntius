@@ -3,6 +3,7 @@ import json
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.contenttypes.models import ContentType
+from django import forms
 from django.http import HttpResponseBadRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
@@ -148,6 +149,18 @@ class CampaignAdmin(admin.ModelAdmin):
         "task_state",
     )
     save_as = True
+
+    def get_changeform_initial_data(self, request):
+        return {
+            "message_from_name": getattr(settings, "NUNTIUS_DEFAULT_FROM_NAME", ""),
+            "message_from_email": getattr(settings, "NUNTIUS_DEFAULT_FROM_EMAIL", ""),
+            "message_reply_to_name": getattr(
+                settings, "NUNTIUS_DEFAULT_REPLY_TO_NAME", ""
+            ),
+            "message_reply_to_email": getattr(
+                settings, "NUNTIUS_DEFAULT_REPLY_TO_EMAIL", ""
+            ),
+        }
 
     def get_object(self, request, object_id, from_field=None):
         object = super().get_object(request, object_id, from_field=from_field)
