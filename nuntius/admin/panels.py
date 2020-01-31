@@ -57,6 +57,7 @@ class MosaicoImageUploadView(CreateView):
 class CampaignAdmin(admin.ModelAdmin):
     search_fields = ("name", "message_subject")
     autocomplete_fields = ("segment",)
+    prepopulated_fields = {"utm_name": ("name",)}
     fieldsets = (
         (
             None,
