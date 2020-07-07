@@ -51,9 +51,8 @@ else:
                     event.recipient
                 )
             c, is_create = CampaignSentEvent.objects.select_for_update().get_or_create(
-                email=event.recipient,
                 esp_message_id=event.message_id,
-                defaults={**defaults},
+                defaults={"email": event.recipient, **defaults},
             )
             if campaign_status is not None:
                 c.result = campaign_status
