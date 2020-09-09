@@ -1,6 +1,5 @@
 import json
 
-from django.conf import settings
 from django.contrib import admin
 from django.contrib.contenttypes.models import ContentType
 from django.http import HttpResponseBadRequest, HttpResponse, JsonResponse
@@ -13,6 +12,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import CreateView
 
+from nuntius import app_settings
 from nuntius.celery import nuntius_celery_app
 from nuntius.models import Campaign, MosaicoImage, CampaignSentEvent
 from nuntius._tasks import send_campaign
@@ -20,7 +20,7 @@ from nuntius.utils import NoCeleryError, build_absolute_uri
 
 
 def subscriber_class():
-    model = settings.NUNTIUS_SUBSCRIBER_MODEL
+    model = app_settings.NUNTIUS_SUBSCRIBER_MODEL
     return ContentType.objects.get(
         app_label=model.split(".")[0], model=model.split(".")[1].lower()
     ).model_class()
@@ -279,14 +279,7 @@ class CampaignAdmin(admin.ModelAdmin):
             return mark_safe("-")
 
         if not instance.message_mosaico_data:
-            default_template = (
-                settings.STATIC_URL
-                + "/nuntius/templates/versafix-1/template-versafix-1.html",
-                _("Default template"),
-            )
-            templates = getattr(
-                settings, "NUNTIUS_MOSAICO_TEMPLATES", [default_template]
-            )
+            templates = app_settings.MOSAICO_TEMPLATES
 
             return format_html_join(
                 " ",
@@ -521,6 +514,6 @@ class CampaignSentEventAdmin(admin.ModelAdmin):
         return super().changelist_view(request, extra_context={"title": title})
 
 
-if not getattr(settings, "NUNTIUS_DISABLE_DEFAULT_ADMIN", False):
+if not app_settings.DISABLE_DEFAULT_ADMIN:
     admin.site.register(Campaign, CampaignAdmin)
     admin.site.register(CampaignSentEvent, CampaignSentEventAdmin)

@@ -1,7 +1,6 @@
 from secrets import token_urlsafe, token_bytes
 
 from celery.app.control import Inspect
-from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -10,6 +9,7 @@ from django.db.models.functions import Coalesce
 from django.utils.translation import gettext_lazy as _
 from stdimage import StdImageField
 
+from nuntius import app_settings
 from nuntius.celery import nuntius_celery_app
 from nuntius.utils import generate_plain_text, NoCeleryError
 
@@ -52,7 +52,7 @@ class Campaign(models.Model):
     message_content_text = fields.TextField(_("Message content (text)"), blank=True)
 
     segment = models.ForeignKey(
-        to=settings.NUNTIUS_SEGMENT_MODEL,
+        to=app_settings.NUNTIUS_SEGMENT_MODEL,
         verbose_name=_("Subscriber segment"),
         on_delete=models.SET_NULL,
         null=True,
@@ -266,7 +266,7 @@ class CampaignSentStatusType:
 
 class CampaignSentEvent(models.Model):
     subscriber = models.ForeignKey(
-        settings.NUNTIUS_SUBSCRIBER_MODEL,
+        app_settings.NUNTIUS_SUBSCRIBER_MODEL,
         models.SET_NULL,
         verbose_name=_("Subscriber"),
         null=True,
