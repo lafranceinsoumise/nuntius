@@ -6,7 +6,7 @@ from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 
-from nuntius._tasks import send_campaign
+from nuntius.messages import send_campaign
 from nuntius.models import (
     Campaign,
     CampaignSentEvent,

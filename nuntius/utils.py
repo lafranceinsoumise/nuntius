@@ -14,10 +14,6 @@ _h.ignore_images = True
 DIGEST_MOD = hashlib.sha1
 
 
-class NoCeleryError(Exception):
-    pass
-
-
 def generate_plain_text(html_message):
     return _h.handle(html_message)
 

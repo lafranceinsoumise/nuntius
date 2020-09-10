@@ -13,10 +13,8 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import CreateView
 
 from nuntius import app_settings
-from nuntius.celery import nuntius_celery_app
 from nuntius.models import Campaign, MosaicoImage, CampaignSentEvent
-from nuntius._tasks import send_campaign
-from nuntius.utils import NoCeleryError, build_absolute_uri
+from nuntius.utils import build_absolute_uri
 
 
 def subscriber_class():
@@ -143,19 +141,8 @@ class CampaignAdmin(admin.ModelAdmin):
         "unique_click_count",
         "open_count",
         "click_count",
-        "task_uuid",
-        "task_state",
     )
     save_as = True
-
-    def get_object(self, request, object_id, from_field=None):
-        object = super().get_object(request, object_id, from_field=from_field)
-        try:
-            self.task = object.get_task_and_update_status()
-        except NoCeleryError:
-            self.task = False
-
-        return object
 
     def save_model(self, request, campaign, form, change):
         if "_saveasnew" in request.POST:
@@ -224,22 +211,6 @@ class CampaignAdmin(admin.ModelAdmin):
 
     unique_click_count.short_description = _("Unique click count")
 
-    def task_state(self, instance):
-        task = self.task
-        if task:
-            return task[0]
-        if instance.task_uuid is None:
-            return "-"
-
-        if task is False:
-            return _("Connection to celery failed")
-
-        return _(
-            "A sending task has been scheduled, is not launched yet, or has been stopped for unkown reasons."
-        )
-
-    task_state.short_description = _("Send task state")
-
     def send_button(self, instance):
         if instance.pk is None:
             return mark_safe("-")
@@ -248,13 +219,10 @@ class CampaignAdmin(admin.ModelAdmin):
                 '<a href="{}" class="button">' + _("Pause") + "</a>",
                 reverse("admin:nuntius_campaign_pause", args=[instance.pk]),
             )
-        if instance.task_uuid is None:
-            return format_html(
-                '<a href="{}" class="button">' + _("Send") + "</a>",
-                reverse("admin:nuntius_campaign_send", args=[instance.pk]),
-            )
-
-        return mark_safe("-")
+        return format_html(
+            '<a href="{}" class="button">' + _("Send") + "</a>",
+            reverse("admin:nuntius_campaign_send", args=[instance.pk]),
+        )
 
     send_button.short_description = _("Send")
 
@@ -347,24 +315,17 @@ class CampaignAdmin(admin.ModelAdmin):
 
     def send_view(self, request, pk):
         campaign = Campaign.objects.get(pk=pk)
-        if campaign.task_uuid is not None:
-            return redirect(reverse("admin:nuntius_campaign_change", args=[pk]))
 
-        r = send_campaign.delay(pk, build_absolute_uri(request, location="/")[:-1])
-        campaign.task_uuid = r.id
-        campaign.save(update_fields=["task_uuid"])
+        campaign.status = Campaign.STATUS_SENDING
+        campaign.save(update_fields=["status"])
 
         return redirect(reverse("admin:nuntius_campaign_change", args=[pk]))
 
     def pause_view(self, request, pk):
         campaign = Campaign.objects.get(pk=pk)
-        if campaign.task_uuid is None:
-            return redirect(reverse("admin:nuntius_campaign_change", args=[pk]))
 
-        nuntius_celery_app.control.revoke(str(campaign.task_uuid), terminate=True)
-
-        campaign.task_uuid = None
-        campaign.save(update_fields=["task_uuid"])
+        campaign.status = Campaign.STATUS_WAITING
+        campaign.save(update_fields=["status"])
 
         return redirect(reverse("admin:nuntius_campaign_change", args=[pk]))
 

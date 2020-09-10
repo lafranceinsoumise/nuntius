@@ -1,6 +1,5 @@
 from secrets import token_urlsafe, token_bytes
 
-from celery.app.control import Inspect
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -10,8 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from stdimage import StdImageField
 
 from nuntius import app_settings
-from nuntius.celery import nuntius_celery_app
-from nuntius.utils import generate_plain_text, NoCeleryError
+from nuntius.utils import generate_plain_text
 
 
 class Campaign(models.Model):
@@ -24,11 +22,6 @@ class Campaign(models.Model):
         (STATUS_SENDING, _("Sending")),
         (STATUS_SENT, _("Sent")),
         (STATUS_ERROR, _("Error")),
-    )
-
-    _task = None
-    task_uuid = fields.UUIDField(
-        _("Celery tasks identifier"), db_index=True, null=True, blank=True, default=None
     )
 
     name = fields.CharField(_("Name (invisible to subscribers)"), max_length=255)
@@ -78,33 +71,6 @@ class Campaign(models.Model):
         if self.message_mosaico_data:
             self.message_content_text = generate_plain_text(self.message_content_html)
         super().save(*args, **kwargs)
-
-    def get_task_and_update_status(self):
-        # caching
-        if self._task is not None:
-            return self._task
-
-        # no task known for this campaign
-        if self.task_uuid is None:
-            if self.status == Campaign.STATUS_SENDING:
-                self.status = Campaign.STATUS_WAITING
-                self.save(update_fields=["status"])
-            return
-
-        res = Inspect(app=nuntius_celery_app).query_task(self.task_uuid)
-
-        # celery is down
-        if res is None:
-            raise NoCeleryError()
-
-        for host_tasks in res.values():
-            if host_tasks.get(str(self.task_uuid)) is None:
-                continue
-            self.status = Campaign.STATUS_SENDING
-            self.save(update_fields=["status"])
-            self._task = host_tasks[str(self.task_uuid)]
-
-            return host_tasks[str(self.task_uuid)]
 
     def get_sent_count(self):
         return (

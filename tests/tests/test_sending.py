@@ -2,7 +2,7 @@ from django.core import mail
 from django.test import TestCase, TransactionTestCase
 
 from nuntius.models import Campaign, BaseSubscriber
-from nuntius._tasks import send_campaign
+from nuntius.messages import send_campaign
 from tests.models import TestSegment, TestSubscriber
 from tests.tasks import dumb_task
 

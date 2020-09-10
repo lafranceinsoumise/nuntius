@@ -53,7 +53,6 @@ LANGUAGE_CODE = os.environ.get("LANGUAGE_CODE", "en")
 
 NUNTIUS_SEGMENT_MODEL = "tests.testsegment"
 NUNTIUS_SUBSCRIBER_MODEL = "tests.TestSubscriber"
-NUNTIUS_CELERY_BROKER_URL = "redis://"
 NUNTIUS_MOSAICO_TEMPLATES = [
     ("/static/mosaico_templates/versafix-2/template-versafix-2.html", "Custom template")
 ]
@@ -65,5 +64,3 @@ EMAIL_HOST = "localhost"
 EMAIL_PORT = "1025"
 
 ANYMAIL_WEBHOOK_SECRET = "test:test"
-
-CELERY_BROKER_URL = "redis://"
