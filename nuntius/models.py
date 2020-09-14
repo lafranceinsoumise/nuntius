@@ -1,3 +1,5 @@
+import re
+from functools import cached_property
 from secrets import token_urlsafe, token_bytes
 
 from django.contrib.contenttypes.models import ContentType
@@ -5,11 +7,15 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import fields, Sum, Value
 from django.db.models.functions import Coalesce
+from django.template import Template
 from django.utils.translation import gettext_lazy as _
 from stdimage import StdImageField
 
 from nuntius import app_settings
 from nuntius.utils import generate_plain_text
+
+
+MOSAICO_TO_DJANGO_TEMPLATE_VARS = re.compile(r"\[([A-Z_-]+)]")
 
 
 class Campaign(models.Model):
@@ -131,8 +137,50 @@ class Campaign(models.Model):
             .count()
         )
 
+    def get_subscribers_queryset(self):
+        if self.segment is None:
+            model = app_settings.NUNTIUS_SUBSCRIBER_MODEL
+            model_class = ContentType.objects.get(
+                app_label=model.split(".")[0], model=model.split(".")[1].lower()
+            ).model_class()
+            return model_class.objects.all()
+        else:
+            return self.segment.get_subscribers_queryset()
+
+    def get_event_for_subscriber(self, subscriber):
+        event, _ = CampaignSentEvent.objects.get_or_create(
+            campaign=self,
+            subscriber=subscriber,
+            defaults={"email": subscriber.get_subscriber_email()},
+        )
+        return event
+
     def __str__(self):
         return self.name
+
+    @cached_property
+    def html_template(self):
+        from nuntius.messages import insert_tracking_image_template
+
+        return Template(insert_tracking_image_template(self.message_content_html))
+
+    @cached_property
+    def text_template(self):
+        return Template(self.message_content_text)
+
+    @property
+    def from_header(self):
+        if self.message_from_name:
+            return f"{self.message_from_name} <{self.message_from_email}>"
+        return self.message_from_email
+
+    @property
+    def reply_to_header(self):
+        if self.message_reply_to_email:
+            if self.message_reply_to_name:
+                return f"{self.message_reply_to_name} <{self.message_reply_to_email}>"
+            return self.message_reply_to_email
+        return None
 
     class Meta:
         verbose_name = _("Campaign")

@@ -1,7 +1,9 @@
 from django.core.exceptions import ImproperlyConfigured
-
+from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 
+
+# Segment and subscribers models
 try:
     NUNTIUS_SEGMENT_MODEL = settings.NUNTIUS_SEGMENT_MODEL
     NUNTIUS_SUBSCRIBER_MODEL = settings.NUNTIUS_SUBSCRIBER_MODEL
@@ -35,7 +37,7 @@ MAX_SENDING_RATE = getattr(settings, "NUNTIUS_MAX_SENDING_RATE", 50)
 MAX_CONCURRENT_SENDERS = getattr(settings, "NUNTIUS_MAX_CONCURRENT_SENDERS", 4)
 
 # Maximum number of messages that may be sent over a single SMTP connection
-MAX_MESSAGES_PER_SMTP_CONNECTION = getattr(
+MAX_MESSAGES_PER_CONNECTION = getattr(
     settings, "NUNTIUS_MAX_MESSAGES_PER_SMTP_CONNECTION", 500
 )
 

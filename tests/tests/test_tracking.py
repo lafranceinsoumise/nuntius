@@ -1,12 +1,12 @@
 import base64
 import json
+from unittest.mock import patch
 from urllib.parse import quote as url_quote
 
-from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 
-from nuntius.messages import send_campaign
+from nuntius.messages import message_for_event
 from nuntius.models import (
     Campaign,
     CampaignSentEvent,
@@ -145,8 +145,9 @@ class BounceTestCase(TrackingMixin, TestCase):
 
     def test_amazon_soft_bounce(self):
         campaign = Campaign.objects.create()
-        send_campaign(campaign.pk, "http://example.com")
-        c = CampaignSentEvent.objects.get(email="a@example.com")
+        subscriber = TestSubscriber.objects.get(email="a@example.com")
+        c = campaign.get_event_for_subscriber(subscriber)
+        c.result = CampaignSentStatusType.UNKNOWN
         c.esp_message_id = ESP_MESSAGE_ID
         c.save()
 
@@ -167,8 +168,9 @@ class BounceTestCase(TrackingMixin, TestCase):
 
     def test_amazon_hard_bounce(self):
         campaign = Campaign.objects.create()
-        send_campaign(campaign.pk, "http://example.com")
-        c = CampaignSentEvent.objects.get(email="a@example.com")
+        subscriber = TestSubscriber.objects.get(email="a@example.com")
+        c = campaign.get_event_for_subscriber(subscriber)
+        c.result = CampaignSentStatusType.UNKNOWN
         c.esp_message_id = ESP_MESSAGE_ID
         c.save()
 
@@ -188,13 +190,12 @@ class BounceTestCase(TrackingMixin, TestCase):
 
     def test_bounce_tracking_on_campaign(self):
         campaign = Campaign.objects.create()
-        send_campaign(campaign.pk, "http://example.com")
+        subscriber = TestSubscriber.objects.get(email="a@example.com")
 
-        c = CampaignSentEvent.objects.get(email="a@example.com")
+        c = campaign.get_event_for_subscriber(subscriber)
+        c.result = CampaignSentStatusType.UNKNOWN
         c.esp_message_id = ESP_MESSAGE_ID
         c.save()
-
-        self.assertEqual(c.result, CampaignSentStatusType.UNKNOWN)
 
         self.post_webhook(
             reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload()
@@ -203,6 +204,7 @@ class BounceTestCase(TrackingMixin, TestCase):
         self.assertEqual(c.result, CampaignSentStatusType.BOUNCED)
 
 
+@patch("nuntius.app_settings.PUBLIC_URL", new="http://example.com")
 class TrackingTestCase(TestCase):
     fixtures = ["subscribers.json"]
 
@@ -210,9 +212,11 @@ class TrackingTestCase(TestCase):
         campaign = Campaign.objects.create(
             message_content_html=HTML_MESSAGE, message_content_text="Test"
         )
-        send_campaign(campaign.pk, "http://example.com")
+        subscriber = TestSubscriber.objects.get(email="a@example.com")
+        event = campaign.get_event_for_subscriber(subscriber)
+        message = message_for_event(event)
 
-        tracking_id = CampaignSentEvent.objects.get(email="a@example.com").tracking_id
+        tracking_id = event.tracking_id
         tracking_url = reverse(
             "nuntius_track_open", kwargs={"tracking_id": tracking_id}
         )
@@ -221,7 +225,7 @@ class TrackingTestCase(TestCase):
             '<img src="http://example.com{}" width="1" height="1" alt="nt">'.format(
                 tracking_url
             ),
-            str(mail.outbox[0].message()),
+            str(message.message()),
         )
 
         for i in range(2):
@@ -240,9 +244,11 @@ class TrackingTestCase(TestCase):
             message_content_text="Test",
             utm_name="tracked_campaign",
         )
-        send_campaign(campaign.pk, "http://example.com")
+        subscriber = TestSubscriber.objects.get(email="a@example.com")
+        event = campaign.get_event_for_subscriber(subscriber)
+        message = message_for_event(event)
 
-        tracking_id = CampaignSentEvent.objects.get(email="a@example.com").tracking_id
+        tracking_id = event.tracking_id
         encoded_tracking_query = "?utm_content=link-0&utm_term="
         tracking_url = reverse(
             "nuntius_track_click",
@@ -255,7 +261,7 @@ class TrackingTestCase(TestCase):
 
         self.assertIn(
             '<a href="http://example.com{}">Link</a>'.format(tracking_url),
-            str(mail.outbox[0].message()),
+            str(message.message()),
         )
 
         for i in range(2):
