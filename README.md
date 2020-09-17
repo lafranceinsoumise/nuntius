@@ -156,6 +156,11 @@ many messages.
 The Nuntius worker checks every `NUNTIUS_POLLING_INTERVAL` seconds if any sending has been scheduled
 or canceled. The default value of 2 seconds should be find for most usages.
 
+To help you configure these parameters, you can send SIGUSR1 to the main worker process and it will
+print sending statistics on `stderr`. Pay special attention to the current sending rate and to the
+current bucket capacity: if your sending rate is lower than the maximum you configured, it most
+likely means the value you chose for `NUNTIUS_MAX_CONCURRENT_SENDERS` is not high enough given
+the latency you're getting with your ESP.
 
 ### ESP and Webhooks
 
