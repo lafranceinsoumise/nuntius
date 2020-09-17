@@ -1,5 +1,4 @@
 import re
-from functools import cached_property
 from secrets import token_urlsafe, token_bytes
 
 from django.contrib.contenttypes.models import ContentType
@@ -8,6 +7,7 @@ from django.db import models
 from django.db.models import fields, Sum, Value
 from django.db.models.functions import Coalesce
 from django.template import Template
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from stdimage import StdImageField
 
