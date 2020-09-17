@@ -8,6 +8,7 @@ tqdm = "*"
 mysqlclient = "*"
 black = "==18.9b0"
 redis = "*"
+ipython = "*"
 
 [packages]
 django = "*"
