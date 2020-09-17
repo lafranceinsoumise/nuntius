@@ -158,6 +158,9 @@ class Campaign(models.Model):
     def __str__(self):
         return self.name
 
+    def __repr__(self):
+        return f"Campaign(id={self.id!r}, name={self.name!r})"
+
     @cached_property
     def html_template(self):
         from nuntius.messages import insert_tracking_image_template

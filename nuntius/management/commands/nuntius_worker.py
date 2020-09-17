@@ -1,15 +1,20 @@
+import contextlib
 import logging
-import multiprocessing
-import multiprocessing.connection
+import multiprocessing as mp
+import multiprocessing.connection as mpc
+import signal
 import time
+import traceback
 from ctypes import c_double
+from queue import Empty
 from smtplib import SMTPServerDisconnected, SMTPException, SMTPRecipientsRefused
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from anymail.exceptions import AnymailError
 from django.core import mail
 from django.core.mail import EmailMessage
 from django.core.management import BaseCommand
+from django.db import ProgrammingError
 from django.db.models import Exists, OuterRef
 from tenacity import (
     retry,
@@ -36,6 +41,48 @@ except:
 
 
 logger = logging.getLogger(__name__)
+
+
+class GracefulExit(Exception):
+    pass
+
+
+def gracefully_exit(sig, stack):
+    raise GracefulExit()
+
+
+def print_stack_trace(sig, stack):
+    traceback.print_stack(stack)
+
+
+def reset_sigmask(proc):
+    """
+    Decorator that resets sigmask to use for children.
+    """
+
+    @contextlib.wraps(proc)
+    def wrapper(*args, **kwargs):
+        signal.pthread_sigmask(signal.SIG_SETMASK, [])
+        return proc(*args, **kwargs)
+
+    return wrapper
+
+
+@contextlib.contextmanager
+def setup_signal_handlers_for_children():
+    old_sigint_handler = None
+    old_sigterm_handler = None
+    signal.pthread_sigmask(signal.SIG_BLOCK, [signal.SIGTERM, signal.SIGINT])
+    try:
+        old_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
+        old_sigterm_handler = signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        yield
+    finally:
+        if old_sigterm_handler:
+            signal.signal(signal.SIGTERM, old_sigterm_handler)
+        if old_sigint_handler:
+            signal.signal(signal.SIGINT, old_sigint_handler)
+        signal.pthread_sigmask(signal.SIG_UNBLOCK, [signal.SIGTERM, signal.SIGINT])
 
 
 class RateLimiter:
@@ -65,10 +112,10 @@ class TokenBucket(RateLimiter):
         """
         self.max = max
         self.rate = rate
-        self.lock = multiprocessing.RLock()
-        self.timestamp = multiprocessing.Value(c_double, lock=False)
+        self.lock = mp.RLock()
+        self.timestamp = mp.Value(c_double, lock=False)
         self.timestamp.value = time.monotonic()
-        self.value = multiprocessing.Value(c_double, lock=False)
+        self.value = mp.Value(c_double, lock=False)
         self.value.value = self.max
 
     def _current_time(self):
@@ -123,16 +170,20 @@ def send_message(message: EmailMessage, connection):
     """
     try:
         connection.send_messages([message])
+        connection.messages_sent += 1
     except SMTPServerDisconnected:
+        connection.close()
         connection.open()
+        connection.messages_sent = 0
         raise
 
 
+@reset_sigmask
 def sender_process(
     *,
-    queue: multiprocessing.Queue,
-    error_channel: multiprocessing.connection.Connection,
-    quit_event: multiprocessing.Event,
+    queue: mp.Queue,
+    error_channel: mpc.Connection,
+    quit_event: mp.Event,
     rate_limiter: RateLimiter = None,
 ):
     """
@@ -165,52 +216,68 @@ def sender_process(
     sent_event_id: int
 
     while True:
-        with mail.get_connection(backend=app_settings.EMAIL_BACKEND) as connection:
-            for i in range(app_settings.MAX_MESSAGES_PER_CONNECTION):
-                if queue.empty() and quit_event.is_set():
-                    return
+        try:
+            with mail.get_connection(backend=app_settings.EMAIL_BACKEND) as connection:
+                connection.messages_sent = 0
+                while (
+                    connection.messages_sent < app_settings.MAX_MESSAGES_PER_CONNECTION
+                ):
+                    if queue.empty() and quit_event.is_set():
+                        return
 
-                # rate limit before the queue get so that the process does not
-                # sit on a message while being rate limited
-                if rate_limiter:
-                    rate_limiter.take()
-                message, sent_event_id = queue.get()
-                sent_event_qs = CampaignSentEvent.objects.filter(id=sent_event_id)
-                email = message.to[0]
+                    # rate limit before the queue get so that the process does not
+                    # sit on a message while being rate limited
+                    if rate_limiter:
+                        rate_limiter.take()
 
-                try:
-                    send_message(message, connection)
-                except (SMTPRecipientsRefused, AnymailRecipientsRefused):
-                    CampaignSentEvent.objects.filter(id=sent_event_id).update(
-                        result=CampaignSentStatusType.BLOCKED
-                    )
-                except Exception:
-                    campaign = Campaign.objects.get(campaignsentevent__id=sent_event_id)
-                    error_channel.send(campaign.id)
-                else:
-                    if hasattr(message, "anymail_status"):
-                        if message.anymail_status.recipients[email].status in [
-                            "invalid",
-                            "rejected",
-                            "failed",
-                        ]:
-                            sent_event_qs.update(result=CampaignSentStatusType.REJECTED)
-                        else:
-                            sent_event_qs.update(
-                                result=CampaignSentStatusType.UNKNOWN,
-                                esp_message_id=message.anymail_status.recipients[
-                                    email
-                                ].message_id,
-                            )
+                    try:
+                        message, sent_event_id = queue.get(
+                            timeout=app_settings.POLLING_INTERVAL
+                        )
+                    except Empty:
+                        continue
+
+                    sent_event_qs = CampaignSentEvent.objects.filter(id=sent_event_id)
+                    email = message.to[0]
+
+                    try:
+                        send_message(message, connection)
+                    except (SMTPRecipientsRefused, AnymailRecipientsRefused):
+                        CampaignSentEvent.objects.filter(id=sent_event_id).update(
+                            result=CampaignSentStatusType.BLOCKED
+                        )
+                    except Exception:
+                        traceback.print_exc()
+                        campaign = Campaign.objects.get(
+                            campaignsentevent__id=sent_event_id
+                        )
+                        error_channel.send(campaign.id)
                     else:
-                        sent_event_qs.update(result=CampaignSentStatusType.UNKNOWN)
+                        if hasattr(message, "anymail_status"):
+                            if message.anymail_status.recipients[email].status in [
+                                "invalid",
+                                "rejected",
+                                "failed",
+                            ]:
+                                sent_event_qs.update(
+                                    result=CampaignSentStatusType.REJECTED
+                                )
+                            else:
+                                sent_event_qs.update(
+                                    result=CampaignSentStatusType.UNKNOWN,
+                                    esp_message_id=message.anymail_status.recipients[
+                                        email
+                                    ].message_id,
+                                )
+                        else:
+                            sent_event_qs.update(result=CampaignSentStatusType.UNKNOWN)
+        except SMTPServerDisconnected:
+            continue
 
 
+@reset_sigmask
 def campaign_manager_process(
-    *,
-    campaign: Campaign,
-    queue: multiprocessing.Queue,
-    quit_event: multiprocessing.Event,
+    *, campaign: Campaign, queue: mp.Queue, quit_event: mp.Event
 ):
     """
     Main function of the process responsible for scheduling the sending of campaigns
@@ -234,6 +301,8 @@ def campaign_manager_process(
         )
     ).filter(already_sent=False)
 
+    finished = False
+
     for subscriber in queryset.iterator():
         if quit_event.is_set():
             # quit if sending is paused
@@ -251,23 +320,27 @@ def campaign_manager_process(
         message = message_for_event(sent_event)
 
         queue.put((message, sent_event.id))
+    else:
+        finished = True
 
     queue.close()
     queue.join_thread()
     # everything has been scheduled for sending:
-    campaign.status = Campaign.STATUS_SENT
-    campaign.save()
+    if finished:
+        campaign.status = Campaign.STATUS_SENT
+        campaign.save()
 
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
+        signal.signal(signal.SIGUSR1, print_stack_trace)
+        signal.signal(signal.SIGTERM, gracefully_exit)
+
         # used by campaign managers processes to queue emails to send
-        self.queue = multiprocessing.Queue(
-            maxsize=app_settings.MAX_CONCURRENT_SENDERS * 2
-        )
+        self.queue = mp.Queue(maxsize=app_settings.MAX_CONCURRENT_SENDERS * 2)
 
         # used to signals to sender they should exist once the queue has been emptied
-        self.senders_quit_event = multiprocessing.Event()
+        self.senders_quit_event = mp.Event()
 
         # used by email senders to make sure they're not going over the max rate
         self.rate_limiter = TokenBucket(
@@ -275,15 +348,14 @@ class Command(BaseCommand):
             rate=app_settings.MAX_SENDING_RATE,
         )
 
-        # used by the main process to ensure that processes are still alive
-        self.sender_processes: List[multiprocessing.Process] = []
-        self.campaign_manager_processes: List[multiprocessing.Process] = []
+        # used by the main process to monitor the sender processes
+        self.sender_processes: List[mp.Process] = []
 
         # used by sender processes to signal when a campaign failed, so that it can be stopped by the main process
-        self.sender_pipes: List[multiprocessing.connection.Connection] = []
+        self.sender_pipes: List[mp.connection.Connection] = []
 
-        # used by the main process to signal to a campaign manager that it should quit
-        self.campaign_manager_quit_events: Dict[int, multiprocessing.Event] = {}
+        # used by the main process to monitor campaign managers and tell them to quit
+        self.campaign_manager_processes: Dict[int, Tuple[mp.Process, mp.Event]] = {}
 
         self.run_loop()
 
@@ -291,9 +363,8 @@ class Command(BaseCommand):
         for i in range(
             app_settings.MAX_CONCURRENT_SENDERS - len(self.sender_processes)
         ):
-            logger.info("Starting up sender process...")
-            recv_conn, send_conn = multiprocessing.Pipe(duplex=False)
-            process = multiprocessing.Process(
+            recv_conn, send_conn = mp.Pipe(duplex=False)
+            process = mp.Process(
                 target=sender_process,
                 kwargs={
                     "queue": self.queue,
@@ -306,36 +377,42 @@ class Command(BaseCommand):
 
             self.sender_processes.append(process)
             self.sender_pipes.append(recv_conn)
-            process.start()
-            logger.info("Sender process started")
+            with setup_signal_handlers_for_children():
+                process.start()
+            logger.info(f"Started sender process {process.pid}")
 
     def check_campaigns(self):
         campaigns = Campaign.objects.filter(
             status__in=[Campaign.STATUS_WAITING, Campaign.STATUS_SENDING]
         )
 
+        # weird errors when iterating on these
+        while True:
+            try:
+                campaigns = list(campaigns)
+            except (ProgrammingError, StopIteration):
+                pass
+            else:
+                break
+
         for campaign in campaigns:
             if (
                 campaign.status == Campaign.STATUS_WAITING
-                and campaign.id in self.campaign_manager_quit_events
+                and campaign.id in self.campaign_manager_processes
             ):
                 # we need to cancel that task
                 logger.info(
                     f"Stopping campaign manager n°{campaign.id} ({campaign.name[:20]})..."
                 )
-                quit_event = self.campaign_manager_quit_events.pop(campaign.id)
+                _, quit_event = self.campaign_manager_processes[campaign.id]
                 quit_event.set()
 
             if (
                 campaign.status == Campaign.STATUS_SENDING
-                and campaign.id not in self.campaign_manager_quit_events
+                and campaign.id not in self.campaign_manager_processes
             ):
-                logger.info(
-                    f"Starting campaign manager n°{campaign.id} ({campaign.name[:20]})..."
-                )
-                quit_event = multiprocessing.Event()
-                self.campaign_manager_quit_events[campaign.id] = quit_event
-                process = multiprocessing.Process(
+                quit_event = mp.Event()
+                process = mp.Process(
                     target=campaign_manager_process,
                     kwargs={
                         "campaign": campaign,
@@ -344,18 +421,19 @@ class Command(BaseCommand):
                     },
                 )
                 process.daemon = True
-                self.campaign_manager_processes.append(process)
-                process.start()
-                logger.info("Campaign started...")
+                self.campaign_manager_processes[campaign.id] = (process, quit_event)
+                with setup_signal_handlers_for_children():
+                    process.start()
+                logger.info(f"Started campaign manager {process.pid} for {campaign!r}")
 
     def monitor_processes(self):
         sender_sentinels = [p.sentinel for p in self.sender_processes]
-        campaign_manager_sentinels = [
-            p.sentinel for p in self.campaign_manager_processes
-        ]
+        campaign_manager_sentinels = {
+            p.sentinel: c_id for c_id, (p, _) in self.campaign_manager_processes.items()
+        }
 
-        events = multiprocessing.connection.wait(
-            sender_sentinels + campaign_manager_sentinels + self.sender_pipes,
+        events = mpc.wait(
+            sender_sentinels + list(campaign_manager_sentinels) + self.sender_pipes,
             timeout=app_settings.POLLING_INTERVAL,
         )
 
@@ -366,31 +444,73 @@ class Command(BaseCommand):
         for event in events:
             if event in sender_sentinels:
                 stopped_senders.append(sender_sentinels.index(event))
-            if event in stopped_campaign_managers:
-                stopped_campaign_managers = campaign_manager_sentinels.index(event)
+            if event in campaign_manager_sentinels:
+                stopped_campaign_managers.append(campaign_manager_sentinels[event])
             elif event in self.sender_pipes:
                 while event.poll():
-                    campaign_errors.add(event.recv())
+                    try:
+                        campaign_errors.add(event.recv())
+                    except EOFError:
+                        break
 
+        # reverse=True is important as we're removing elements from the sender_processes list by index
         for i in sorted(stopped_senders, reverse=True):
-            logger.error("Sender process unexpectedly quit...")
+            process = self.sender_processes[i]
+            # let's reap process to avoid zombies
+            process.join()
+
+            logger.error(f"Sender process {process.pid} unexpectedly quit...")
             del self.sender_processes[i]
             del self.sender_pipes[i]
 
-        for i in sorted(stopped_campaign_managers):
-            # TODO
-            pass
+        for campaign_id in sorted(stopped_campaign_managers):
+            process, event = self.campaign_manager_processes[campaign_id]
+            pid = process.pid
+            # let's reap process to avoid zombies
+            process.join()
+            try:
+                campaign = repr(Campaign.objects.get(id=campaign_id))
+            except Campaign.DoesNotExist:
+                # the campaign has most likely be deleted
+                campaign = "[DELETED CAMPAIGN]"
+
+            if event.is_set():
+                # process was asked to stop and did so correctly
+                logger.info(
+                    f"Campaign manager {pid} correctly stopped... Was taking care of {campaign}."
+                )
+            else:
+                logger.error(
+                    f"Campaign manager {pid} abruptly stops. Was taking care of {campaign}."
+                )
+
+            del self.campaign_manager_processes[campaign_id]
 
         for campaign_id in campaign_errors:
-            if campaign_id in self.campaign_manager_quit_events:
+            if campaign_id in self.campaign_manager_processes:
                 logger.error(
                     f"Unexpected error while trying to send message from campaign {campaign_id}...\nStopping manager."
                 )
-                self.campaign_manager_quit_events[campaign_id].signal()
-                del self.campaign_manager_quit_events[campaign_id]
+                self.campaign_manager_processes[campaign_id][1].set()
 
     def run_loop(self):
-        while True:
-            self.start_sender_processes()
-            self.check_campaigns()
-            self.monitor_processes()
+        try:
+            while True:
+                self.start_sender_processes()
+                self.check_campaigns()
+                self.monitor_processes()
+        except (GracefulExit, KeyboardInterrupt):
+            logger.info("Asked to quit, asking all subprocesses to exit...")
+            self.senders_quit_event.set()
+            for _, event in self.campaign_manager_processes.values():
+                event.set()
+
+            logger.info("Waiting for all subprocesses to gracefully exit...")
+            # active_children joins children so removes zombies
+            while mp.active_children():
+                mpc.wait(
+                    [p.sentinel for p in self.sender_processes]
+                    + [p.sentinel for p, _ in self.campaign_manager_processes.values()]
+                )
+
+            logger.info("All subprocesses have exited!")

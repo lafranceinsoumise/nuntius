@@ -42,4 +42,4 @@ MAX_MESSAGES_PER_CONNECTION = getattr(
 )
 
 # Interval of time, in seconds, with which the worker must check for campaign status changes
-POLLING_INTERVAL = getattr(settings, "NUNTIUS_POLLING_INTERVAL", 10)
+POLLING_INTERVAL = getattr(settings, "NUNTIUS_POLLING_INTERVAL", 2)
