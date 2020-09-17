@@ -3,9 +3,11 @@ import multiprocessing as mp
 import signal
 import time
 import traceback
-from ctypes import c_double
+from ctypes import c_double, c_ulong
 
-from nuntius.management.commands.nuntius_worker import GracefulExit
+
+class GracefulExit(Exception):
+    pass
 
 
 def _current_time():
@@ -47,23 +49,6 @@ def reset_sigmask(proc):
     return wrapper
 
 
-@contextlib.contextmanager
-def setup_signal_handlers_for_children():
-    old_sigint_handler = None
-    old_sigterm_handler = None
-    signal.pthread_sigmask(signal.SIG_BLOCK, [signal.SIGTERM, signal.SIGINT])
-    try:
-        old_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-        old_sigterm_handler = signal.signal(signal.SIGTERM, signal.SIG_DFL)
-        yield
-    finally:
-        if old_sigterm_handler:
-            signal.signal(signal.SIGTERM, old_sigterm_handler)
-        if old_sigint_handler:
-            signal.signal(signal.SIGINT, old_sigint_handler)
-        signal.pthread_sigmask(signal.SIG_UNBLOCK, [signal.SIGTERM, signal.SIGINT])
-
-
 class RateLimiter:
     def take(self):
         return
@@ -91,19 +76,21 @@ class TokenBucket(RateLimiter):
         """
         self.max = max
         self.rate = rate
-        self.lock = mp.RLock()
-        self.timestamp = mp.Value(c_double, lock=False)
-        self.timestamp.value = time.monotonic()
-        self.value = mp.Value(c_double, lock=False)
-        self.value.value = self.max
+        self._var_lock = mp.RLock()
+        self._wait_lock = mp.RLock()
+        self._timestamp = mp.Value(c_double, lock=False)
+        self._timestamp.value = time.monotonic()
+        self._capacity = mp.Value(c_double, lock=False)
+        self._capacity.value = self.max
 
     def _update(self):
-        with self.lock:
+        with self._var_lock:
             now = _current_time()
-            self.value.value = min(
-                self.value.value + self.rate * (now - self.timestamp.value), self.max
+            self._capacity.value = min(
+                self._capacity.value + self.rate * (now - self._timestamp.value),
+                self.max,
             )
-            self.timestamp.value = now
+            self._timestamp.value = now
 
     def take(self, n=1):
         """
@@ -113,9 +100,50 @@ class TokenBucket(RateLimiter):
         a lock and will be guaranteed to be unblocked first. No such guarantee exists
         for the other processes.
         """
-        with self.lock:
-            self._update()
-            self.value.value -= n
+        with self._wait_lock:
+            with self._var_lock:
+                self._update()
+                self._capacity.value -= n
+                capacity = self._capacity.value
 
-            if self.value.value < 0:
-                time.sleep(-self.value.value / self.rate)
+            if capacity < 0:
+                time.sleep(-self._capacity.value / self.rate)
+
+    def peek(self):
+        with self._var_lock:
+            self._update()
+            return self._capacity.value
+
+
+class RateMeter:
+    def __init__(self, alpha: float, window: float):
+        self._alpha = alpha
+        self._window = window
+        self._lock = mp.RLock()
+        self._current_rate = mp.Value(c_double, 0, lock=False)
+        self._last_window = mp.Value(
+            c_ulong, int(_current_time() / self._window), lock=False
+        )
+        self._current_counter = mp.Value(c_ulong, 0, lock=False)
+
+    def _update(self):
+        with self._lock:
+            current_window = int(_current_time() / self._window)
+            if current_window > self._last_window.value:
+                time_diff = current_window - self._last_window.value
+                alpha, beta = self._alpha, 1 - self._alpha
+                self._current_rate.value = beta ** (time_diff - 1) * (
+                    beta * self._current_rate.value
+                    + alpha * (self._current_counter.value / self._window)
+                )
+                self._current_counter.value = 0
+                self._last_window.value = current_window
+
+    def count_up(self, n=1):
+        with self._lock:
+            self._update()
+            self._current_counter.value += n
+
+    def current_rate(self):
+        with self._lock:
+            return self._current_rate.value

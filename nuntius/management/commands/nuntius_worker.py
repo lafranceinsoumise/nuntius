@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import multiprocessing as mp
 import multiprocessing.connection as mpc
@@ -32,9 +33,10 @@ from nuntius.utils.processes import (
     gracefully_exit,
     print_stack_trace,
     reset_sigmask,
-    setup_signal_handlers_for_children,
     RateLimiter,
     TokenBucket,
+    RateMeter,
+    GracefulExit,
 )
 
 try:
@@ -46,10 +48,6 @@ except:
 
 
 logger = logging.getLogger(__name__)
-
-
-class GracefulExit(Exception):
-    pass
 
 
 @retry(
@@ -86,6 +84,7 @@ def sender_process(
     error_channel: mpc.Connection,
     quit_event: mp.Event,
     rate_limiter: RateLimiter = None,
+    rate_meter: RateMeter = None,
 ):
     """
     Main function of the processes responsible for sending email messages.
@@ -111,7 +110,10 @@ def sender_process(
     :type quit_event: class:`multiprocessing.Event`
 
     :param rate_limiter: rate limiter to limit the rate of message sendings.
-    :type rate_limiter: class:`nuntius.synchronize.RateLimiter`
+    :type rate_limiter: class:`nuntius.utils.processes.RateLimiter`
+
+    :param rate_meter: rate meter to allow measuring the sending speed
+    :type rate_meter: class:`nuntius.utils.processes.RateMeter`
     """
     message: EmailMessage
     sent_event_id: int
@@ -126,11 +128,6 @@ def sender_process(
                     if queue.empty() and quit_event.is_set():
                         return
 
-                    # rate limit before the queue get so that the process does not
-                    # sit on a message while being rate limited
-                    if rate_limiter:
-                        rate_limiter.take()
-
                     try:
                         message, sent_event_id = queue.get(
                             timeout=app_settings.POLLING_INTERVAL
@@ -140,6 +137,9 @@ def sender_process(
 
                     sent_event_qs = CampaignSentEvent.objects.filter(id=sent_event_id)
                     email = message.to[0]
+
+                    if rate_limiter:
+                        rate_limiter.take()
 
                     try:
                         send_message(message, connection)
@@ -154,6 +154,8 @@ def sender_process(
                         )
                         error_channel.send(campaign.id)
                     else:
+                        if rate_meter:
+                            rate_meter.count_up()
                         if hasattr(message, "anymail_status"):
                             if message.anymail_status.recipients[email].status in [
                                 "invalid",
@@ -233,10 +235,15 @@ def campaign_manager_process(
 
 
 class Command(BaseCommand):
-    def handle(self, *args, **options):
-        signal.signal(signal.SIGUSR1, print_stack_trace)
-        signal.signal(signal.SIGTERM, gracefully_exit)
+    STATS_MESSAGE = """
+    Message queue size: {queue_size}
+    Sender processes: {sender_processes}
+    Campaign managers: {campaign_managers}
+    Token bucket current capacity: {bucket_capacity}
+    Current sending rate: {sending_rate}
+    """.strip()
 
+    def handle(self, *args, **options):
         # used by campaign managers processes to queue emails to send
         self.queue = mp.Queue(maxsize=app_settings.MAX_CONCURRENT_SENDERS * 2)
 
@@ -249,6 +256,9 @@ class Command(BaseCommand):
             rate=app_settings.MAX_SENDING_RATE,
         )
 
+        # allow us to measure the sending speed
+        self.rate_meter = RateMeter(0.3, 0.5)
+
         # used by the main process to monitor the sender processes
         self.sender_processes: List[mp.Process] = []
 
@@ -258,7 +268,41 @@ class Command(BaseCommand):
         # used by the main process to monitor campaign managers and tell them to quit
         self.campaign_manager_processes: Dict[int, Tuple[mp.Process, mp.Event]] = {}
 
+        self._setup_signals()
+
         self.run_loop()
+
+    def _setup_signals(self):
+        signal.signal(signal.SIGINT, signal.default_int_handler)
+        signal.signal(signal.SIGTERM, gracefully_exit)
+        signal.signal(signal.SIGUSR1, self.print_stats)
+        signal.signal(signal.SIGUSR2, print_stack_trace)
+
+    @contextlib.contextmanager
+    def _setup_signal_handlers_for_children(self):
+        try:
+            signal.pthread_sigmask(signal.SIG_BLOCK, [signal.SIGTERM, signal.SIGINT])
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
+            signal.signal(signal.SIGTERM, signal.SIG_DFL)
+            signal.signal(signal.SIGUSR1, signal.SIG_DFL)
+            signal.signal(signal.SIGUSR2, signal.SIG_DFL)
+            yield
+        finally:
+            self._setup_signals()
+            signal.pthread_sigmask(signal.SIG_UNBLOCK, [signal.SIGTERM, signal.SIGINT])
+
+    def print_stats(self, sig, stack):
+        values = {
+            "queue_size": self.queue.qsize(),
+            "sender_processes": [p.pid for p in self.sender_processes],
+            "campaign_managers": [
+                p.pid for p, _ in self.campaign_manager_processes.values()
+            ],
+            "bucket_capacity": self.rate_limiter.peek(),
+            "sending_rate": self.rate_meter.current_rate(),
+        }
+
+        self.stderr.write(self.STATS_MESSAGE.format(**values), ending="\n")
 
     def start_sender_processes(self):
         for i in range(
@@ -271,6 +315,7 @@ class Command(BaseCommand):
                     "queue": self.queue,
                     "error_channel": send_conn,
                     "rate_limiter": self.rate_limiter,
+                    "rate_meter": self.rate_meter,
                     "quit_event": self.senders_quit_event,
                 },
             )
@@ -280,7 +325,7 @@ class Command(BaseCommand):
             self.sender_pipes.append(recv_conn)
             # let's close SQL connection to make sure it is not shared with children
             connection.close()
-            with setup_signal_handlers_for_children():
+            with self._setup_signal_handlers_for_children():
                 process.start()
             logger.info(f"Started sender process {process.pid}")
 
@@ -318,7 +363,7 @@ class Command(BaseCommand):
                 self.campaign_manager_processes[campaign.id] = (process, quit_event)
                 # let's close SQL connection to make sure it is not shared with children
                 connection.close()
-                with setup_signal_handlers_for_children():
+                with self._setup_signal_handlers_for_children():
                     process.start()
                 logger.info(f"Started campaign manager {process.pid} for {campaign!r}")
 
