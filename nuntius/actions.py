@@ -1,8 +1,8 @@
 from datetime import timedelta
 
-from django.conf import settings
 from django.utils.timezone import now
 
+from nuntius import app_settings
 from nuntius.admin import subscriber_class
 from nuntius.models import CampaignSentStatusType, AbstractSubscriber, CampaignSentEvent
 
@@ -36,7 +36,7 @@ def update_subscriber(email, campaign_status):
         return
 
     default_params = {"consecutive": 1, "duration": 7, "limit": 3}
-    params = {**default_params, **getattr(settings, "NUNTIUS_BOUNCE_PARAMS", dict())}
+    params = {**default_params, **app_settings.BOUNCE_PARAMS}
 
     max_bounce_duration_ago = now() - timedelta(days=params["duration"])
 

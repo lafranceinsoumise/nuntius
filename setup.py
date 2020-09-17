@@ -20,7 +20,7 @@ setup(
     author="Jill Royer",
     python_requires="~=3.6",
     author_email="perso@jillroyer.me",
-    install_requires=("celery", "pillow", "html2text"),
+    install_requires=("tenacity", "pillow", "html2text"),
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Web Environment",

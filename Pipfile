@@ -8,16 +8,13 @@ tqdm = "*"
 mysqlclient = "*"
 black = "==18.9b0"
 redis = "*"
+ipython = "*"
 
 [packages]
 django = "*"
-celery = "*"
 pillow = "*"
 django-anymail = "*"
 django-stdimage = "*"
 html2text = "*"
-mysqlclient = "==1.4.2"
 boto3 = "*"
-
-[requires]
-python_version = "3.6"
+tenacity = "*"

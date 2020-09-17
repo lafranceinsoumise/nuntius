@@ -5,16 +5,13 @@ from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 import html2text
 from PIL import Image, ImageDraw
-from django.conf import settings
+
+from nuntius import app_settings
 
 _h = html2text.HTML2Text()
 _h.ignore_images = True
 
 DIGEST_MOD = hashlib.sha1
-
-
-class NoCeleryError(Exception):
-    pass
 
 
 def generate_plain_text(html_message):
@@ -62,8 +59,8 @@ def generate_placeholder(width, height):
 
 
 def build_absolute_uri(request, location):
-    if hasattr(settings, "NUNTIUS_PUBLIC_URL"):
-        return settings.NUNTIUS_PUBLIC_URL + location
+    if app_settings.PUBLIC_URL:
+        return app_settings.PUBLIC_URL + location
     return request.build_absolute_uri(location)
 
 

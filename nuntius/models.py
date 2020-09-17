@@ -1,17 +1,20 @@
+import re
+from functools import cached_property
 from secrets import token_urlsafe, token_bytes
 
-from celery.app.control import Inspect
-from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import fields, Sum, Value
 from django.db.models.functions import Coalesce
+from django.template import Template
 from django.utils.translation import gettext_lazy as _
 from stdimage import StdImageField
 
-from nuntius.celery import nuntius_celery_app
-from nuntius.utils import generate_plain_text, NoCeleryError
+from nuntius import app_settings
+from nuntius.utils.messages import generate_plain_text
+
+MOSAICO_TO_DJANGO_TEMPLATE_VARS = re.compile(r"\[([A-Z_-]+)]")
 
 
 class Campaign(models.Model):
@@ -24,11 +27,6 @@ class Campaign(models.Model):
         (STATUS_SENDING, _("Sending")),
         (STATUS_SENT, _("Sent")),
         (STATUS_ERROR, _("Error")),
-    )
-
-    _task = None
-    task_uuid = fields.UUIDField(
-        _("Celery tasks identifier"), db_index=True, null=True, blank=True, default=None
     )
 
     name = fields.CharField(_("Name (invisible to subscribers)"), max_length=255)
@@ -52,7 +50,7 @@ class Campaign(models.Model):
     message_content_text = fields.TextField(_("Message content (text)"), blank=True)
 
     segment = models.ForeignKey(
-        to=settings.NUNTIUS_SEGMENT_MODEL,
+        to=app_settings.NUNTIUS_SEGMENT_MODEL,
         verbose_name=_("Subscriber segment"),
         on_delete=models.SET_NULL,
         null=True,
@@ -78,33 +76,6 @@ class Campaign(models.Model):
         if self.message_mosaico_data:
             self.message_content_text = generate_plain_text(self.message_content_html)
         super().save(*args, **kwargs)
-
-    def get_task_and_update_status(self):
-        # caching
-        if self._task is not None:
-            return self._task
-
-        # no task known for this campaign
-        if self.task_uuid is None:
-            if self.status == Campaign.STATUS_SENDING:
-                self.status = Campaign.STATUS_WAITING
-                self.save(update_fields=["status"])
-            return
-
-        res = Inspect(app=nuntius_celery_app).query_task(self.task_uuid)
-
-        # celery is down
-        if res is None:
-            raise NoCeleryError()
-
-        for host_tasks in res.values():
-            if host_tasks.get(str(self.task_uuid)) is None:
-                continue
-            self.status = Campaign.STATUS_SENDING
-            self.save(update_fields=["status"])
-            self._task = host_tasks[str(self.task_uuid)]
-
-            return host_tasks[str(self.task_uuid)]
 
     def get_sent_count(self):
         return (
@@ -165,8 +136,53 @@ class Campaign(models.Model):
             .count()
         )
 
+    def get_subscribers_queryset(self):
+        if self.segment is None:
+            model = app_settings.NUNTIUS_SUBSCRIBER_MODEL
+            model_class = ContentType.objects.get(
+                app_label=model.split(".")[0], model=model.split(".")[1].lower()
+            ).model_class()
+            return model_class.objects.all()
+        else:
+            return self.segment.get_subscribers_queryset()
+
+    def get_event_for_subscriber(self, subscriber):
+        event, _ = CampaignSentEvent.objects.get_or_create(
+            campaign=self,
+            subscriber=subscriber,
+            defaults={"email": subscriber.get_subscriber_email()},
+        )
+        return event
+
     def __str__(self):
         return self.name
+
+    def __repr__(self):
+        return f"Campaign(id={self.id!r}, name={self.name!r})"
+
+    @cached_property
+    def html_template(self):
+        from nuntius.messages import insert_tracking_image_template
+
+        return Template(insert_tracking_image_template(self.message_content_html))
+
+    @cached_property
+    def text_template(self):
+        return Template(self.message_content_text)
+
+    @property
+    def from_header(self):
+        if self.message_from_name:
+            return f"{self.message_from_name} <{self.message_from_email}>"
+        return self.message_from_email
+
+    @property
+    def reply_to_header(self):
+        if self.message_reply_to_email:
+            if self.message_reply_to_name:
+                return f"{self.message_reply_to_name} <{self.message_reply_to_email}>"
+            return self.message_reply_to_email
+        return None
 
     class Meta:
         verbose_name = _("Campaign")
@@ -266,7 +282,7 @@ class CampaignSentStatusType:
 
 class CampaignSentEvent(models.Model):
     subscriber = models.ForeignKey(
-        settings.NUNTIUS_SUBSCRIBER_MODEL,
+        app_settings.NUNTIUS_SUBSCRIBER_MODEL,
         models.SET_NULL,
         verbose_name=_("Subscriber"),
         null=True,

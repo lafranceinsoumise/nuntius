@@ -45,6 +45,16 @@ TEMPLATES = [
 ]
 
 DATABASES = {"default": {"ENGINE": "django.db.backends.mysql", "NAME": "nuntius"}}
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"level": "DEBUG", "class": "logging.StreamHandler"}},
+    "loggers": {
+        "django": {"handlers": ["console"], "level": "INFO", "propagate": True},
+        "nuntius": {"handlers": ["console"], "level": "DEBUG", "propagate": True},
+    },
+}
+
 
 STATIC_URL = "/static/"
 
@@ -53,7 +63,6 @@ LANGUAGE_CODE = os.environ.get("LANGUAGE_CODE", "en")
 
 NUNTIUS_SEGMENT_MODEL = "tests.testsegment"
 NUNTIUS_SUBSCRIBER_MODEL = "tests.TestSubscriber"
-NUNTIUS_CELERY_BROKER_URL = "redis://"
 NUNTIUS_MOSAICO_TEMPLATES = [
     ("/static/mosaico_templates/versafix-2/template-versafix-2.html", "Custom template")
 ]
@@ -65,5 +74,3 @@ EMAIL_HOST = "localhost"
 EMAIL_PORT = "1025"
 
 ANYMAIL_WEBHOOK_SECRET = "test:test"
-
-CELERY_BROKER_URL = "redis://"
