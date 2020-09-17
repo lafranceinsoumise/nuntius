@@ -1,11 +1,8 @@
-import contextlib
 import logging
 import multiprocessing as mp
 import multiprocessing.connection as mpc
 import signal
-import time
 import traceback
-from ctypes import c_double
 from queue import Empty
 from smtplib import SMTPServerDisconnected, SMTPException, SMTPRecipientsRefused
 from typing import Dict, List, Tuple
@@ -14,7 +11,7 @@ from anymail.exceptions import AnymailError
 from django.core import mail
 from django.core.mail import EmailMessage
 from django.core.management import BaseCommand
-from django.db import ProgrammingError
+from django.db import connection
 from django.db.models import Exists, OuterRef
 from tenacity import (
     retry,
@@ -31,6 +28,14 @@ from nuntius.models import (
     CampaignSentStatusType,
     AbstractSubscriber,
 )
+from nuntius.utils.processes import (
+    gracefully_exit,
+    print_stack_trace,
+    reset_sigmask,
+    setup_signal_handlers_for_children,
+    RateLimiter,
+    TokenBucket,
+)
 
 try:
     from anymail.exceptions import AnymailRecipientsRefused
@@ -45,110 +50,6 @@ logger = logging.getLogger(__name__)
 
 class GracefulExit(Exception):
     pass
-
-
-def gracefully_exit(sig, stack):
-    raise GracefulExit()
-
-
-def print_stack_trace(sig, stack):
-    traceback.print_stack(stack)
-
-
-def reset_sigmask(proc):
-    """
-    Decorator that resets sigmask to use for children.
-    """
-
-    @contextlib.wraps(proc)
-    def wrapper(*args, **kwargs):
-        signal.pthread_sigmask(signal.SIG_SETMASK, [])
-        return proc(*args, **kwargs)
-
-    return wrapper
-
-
-@contextlib.contextmanager
-def setup_signal_handlers_for_children():
-    old_sigint_handler = None
-    old_sigterm_handler = None
-    signal.pthread_sigmask(signal.SIG_BLOCK, [signal.SIGTERM, signal.SIGINT])
-    try:
-        old_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-        old_sigterm_handler = signal.signal(signal.SIGTERM, signal.SIG_DFL)
-        yield
-    finally:
-        if old_sigterm_handler:
-            signal.signal(signal.SIGTERM, old_sigterm_handler)
-        if old_sigint_handler:
-            signal.signal(signal.SIGINT, old_sigint_handler)
-        signal.pthread_sigmask(signal.SIG_UNBLOCK, [signal.SIGTERM, signal.SIGINT])
-
-
-class RateLimiter:
-    def take(self):
-        return
-
-
-class TokenBucket(RateLimiter):
-    """
-    Simple multiprocessing token bucket implementation of the RateLimiter Interface
-
-    Token buckets have the following principles :
-    - They fill up at a fixed rate
-    - They have a maximum capacity and will stop filling up when it is reached
-    - Whenever a process calls `take`, if the bucket is full enough is is decreased ;
-      if it is not the case, the process (and others) are blocked until is has filled
-      in enough.
-    """
-
-    def __init__(self, max: int, rate: float):
-        """Create a new TokenBucket.
-
-        :param max: The maximum number of tokens that may be stored in the bucket
-        :type max: class:`int`
-        :param rate: The rate at which the bucket fills in, in number of tokens per second
-        :type rate: class:`float`
-        """
-        self.max = max
-        self.rate = rate
-        self.lock = mp.RLock()
-        self.timestamp = mp.Value(c_double, lock=False)
-        self.timestamp.value = time.monotonic()
-        self.value = mp.Value(c_double, lock=False)
-        self.value.value = self.max
-
-    def _current_time(self):
-        """Returns monotonic current time in seconds.
-
-        Splitted off in a method to increase testability.
-
-        :return: current time in seconds, guaranteed monotonic
-        """
-        return time.monotonic()
-
-    def _update(self):
-        with self.lock:
-            now = self._current_time()
-            self.value.value = min(
-                self.value.value + self.rate * (now - self.timestamp.value), self.max
-            )
-            self.timestamp.value = now
-
-    def take(self, n=1):
-        """
-        Try to take a token, or wait for the bucket to fill in enough.
-
-        If several processes take at the same time, the first one to call will takes
-        a lock and will be guaranteed to be unblocked first. No such guarantee exists
-        for the other processes.
-        """
-        with self.lock:
-            self._update()
-            self.value.value -= n
-
-            if self.value.value < 0:
-                time.sleep(-self.value.value / self.rate)
 
 
 @retry(
@@ -210,7 +111,7 @@ def sender_process(
     :type quit_event: class:`multiprocessing.Event`
 
     :param rate_limiter: rate limiter to limit the rate of message sendings.
-    :type rate_limiter: class:`RateLimiter`
+    :type rate_limiter: class:`nuntius.synchronize.RateLimiter`
     """
     message: EmailMessage
     sent_event_id: int
@@ -386,15 +287,6 @@ class Command(BaseCommand):
             status__in=[Campaign.STATUS_WAITING, Campaign.STATUS_SENDING]
         )
 
-        # weird errors when iterating on these
-        while True:
-            try:
-                campaigns = list(campaigns)
-            except (ProgrammingError, StopIteration):
-                pass
-            else:
-                break
-
         for campaign in campaigns:
             if (
                 campaign.status == Campaign.STATUS_WAITING
@@ -464,24 +356,24 @@ class Command(BaseCommand):
             del self.sender_pipes[i]
 
         for campaign_id in sorted(stopped_campaign_managers):
-            process, event = self.campaign_manager_processes[campaign_id]
+            process, _ = self.campaign_manager_processes[campaign_id]
             pid = process.pid
             # let's reap process to avoid zombies
             process.join()
             try:
-                campaign = repr(Campaign.objects.get(id=campaign_id))
+                campaign = Campaign.objects.get(id=campaign_id)
             except Campaign.DoesNotExist:
                 # the campaign has most likely be deleted
-                campaign = "[DELETED CAMPAIGN]"
+                campaign = None
 
-            if event.is_set():
+            if campaign and campaign.status != campaign.STATUS_SENDING:
                 # process was asked to stop and did so correctly
                 logger.info(
-                    f"Campaign manager {pid} correctly stopped... Was taking care of {campaign}."
+                    f"Campaign manager {pid} correctly stopped... Was taking care of {campaign!r}."
                 )
             else:
                 logger.error(
-                    f"Campaign manager {pid} abruptly stops. Was taking care of {campaign}."
+                    f"Campaign manager {pid} abruptly stops. Was taking care of {campaign!r}."
                 )
 
             del self.campaign_manager_processes[campaign_id]

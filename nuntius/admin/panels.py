@@ -14,7 +14,7 @@ from django.views.generic import CreateView
 
 from nuntius import app_settings
 from nuntius.models import Campaign, MosaicoImage, CampaignSentEvent
-from nuntius.utils import build_absolute_uri
+from nuntius.utils.messages import build_absolute_uri
 
 
 def subscriber_class():

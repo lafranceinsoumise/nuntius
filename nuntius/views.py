@@ -10,7 +10,11 @@ from django.http.request import validate_host
 from django.shortcuts import redirect, get_object_or_404
 
 from nuntius.models import MosaicoImage, CampaignSentEvent
-from nuntius.utils import generate_placeholder, url_signature_is_valid, extend_query
+from nuntius.utils.messages import (
+    generate_placeholder,
+    url_signature_is_valid,
+    extend_query,
+)
 
 
 def mosaico_image_processor_view(request):

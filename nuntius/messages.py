@@ -7,8 +7,7 @@ from django.template import Context
 from django.urls import reverse
 
 from nuntius import app_settings
-from nuntius.utils import extend_query
-from nuntius.utils import sign_url
+from nuntius.utils.messages import sign_url, extend_query
 
 RE_URL = re.compile(
     r"(?P<prefix><a[^>]* href\s*=[\s\"']*)(?P<url>http[^\"'>\s]+)",

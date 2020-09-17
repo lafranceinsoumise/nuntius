@@ -13,7 +13,7 @@ from nuntius.models import (
     CampaignSentStatusType,
     BaseSubscriber,
 )
-from nuntius.utils import sign_url
+from nuntius.utils.messages import sign_url
 from tests.models import TestSubscriber
 
 EXTERNAL_LINK = "http://otherexample.com"

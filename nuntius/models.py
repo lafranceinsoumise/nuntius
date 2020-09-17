@@ -12,8 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from stdimage import StdImageField
 
 from nuntius import app_settings
-from nuntius.utils import generate_plain_text
-
+from nuntius.utils.messages import generate_plain_text
 
 MOSAICO_TO_DJANGO_TEMPLATE_VARS = re.compile(r"\[([A-Z_-]+)]")
 
