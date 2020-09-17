@@ -140,6 +140,23 @@ NUNTIUS_MOSAICO_TEMPLATES = [
 ]
 ```
 
+### Sending parameters
+
+The worker will spawn several subprocesses to speed up the sending of campaigns. The number of
+processes that will send emails concurrently can be configured using the `NUNTIUS_MAX_CONCURRENT_SENDERS`
+setting.
+
+Most ESP enforce a maximum send rate. Nuntius won't sent messages faster than`NUNTIUS_MAX_SENDING_RATE`,
+in messages per second.
+
+When using SMTP, some ESP limit the number of emails that can be sent using a single connection.
+`NUNTIUS_MAX_MESSAGES_PER_CONNECTION` will force Nuntius to reset the connection after sending that
+many messages.
+
+The Nuntius worker checks every `NUNTIUS_POLLING_INTERVAL` seconds if any sending has been scheduled
+or canceled. The default value of 2 seconds should be find for most usages.
+
+
 ### ESP and Webhooks
 
 Maintaining your own SMTP server to send your newsletter is probably
@@ -168,7 +185,7 @@ when they bounce.
 2. Implement the method `set_subscriber_status(self, email, status)` on your subscriber
 model manager.
 
-Nuntius will automatically listen to Anymail signals and call this method approprietly.
+Nuntius will automatically listen to Anymail signals and call this method if needed.
 
 ##### Handling of non-nuntius events (optional)
 
@@ -179,7 +196,7 @@ the email and the event type, but it will not link it to a campaign nor to a sub
 model.
 
 If you want your events to always be linked to a subscriber model, you must implement
-a `get_subscriber(self, email_address)` method on your subsciber model manager.
+a `get_subscriber(self, email_address)` method on your subscriber model manager.
 
 
 ##### BaseSubscriberManager
