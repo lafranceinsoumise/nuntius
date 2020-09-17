@@ -2,6 +2,7 @@ language: python
 python:
   - "3.6"
   - "3.7"
+  - "3.8"
 services:
   - mysql
 addons:
@@ -11,8 +12,6 @@ addons:
 dist: xenial
 cache:
   - pip
-before_install:
-  - pip install -U pipenv
 install:
   - pipenv install --dev --deploy
 script:

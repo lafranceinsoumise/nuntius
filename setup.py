@@ -18,7 +18,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/lafranceinsoumise/nuntius",
     author="Jill Royer",
-    python_requires="~=3.6",
+    python_requires=">=3.6",
     author_email="perso@jillroyer.me",
     install_requires=("tenacity", "pillow", "html2text"),
     classifiers=[
@@ -31,6 +31,8 @@ setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
         "Topic :: Communications :: Email",
