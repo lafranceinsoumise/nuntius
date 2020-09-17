@@ -278,6 +278,8 @@ class Command(BaseCommand):
 
             self.sender_processes.append(process)
             self.sender_pipes.append(recv_conn)
+            # let's close SQL connection to make sure it is not shared with children
+            connection.close()
             with setup_signal_handlers_for_children():
                 process.start()
             logger.info(f"Started sender process {process.pid}")
@@ -314,6 +316,8 @@ class Command(BaseCommand):
                 )
                 process.daemon = True
                 self.campaign_manager_processes[campaign.id] = (process, quit_event)
+                # let's close SQL connection to make sure it is not shared with children
+                connection.close()
                 with setup_signal_handlers_for_children():
                     process.start()
                 logger.info(f"Started campaign manager {process.pid} for {campaign!r}")
