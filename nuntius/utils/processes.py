@@ -4,6 +4,7 @@ import signal
 import time
 import traceback
 from ctypes import c_double, c_ulong
+from queue import Empty, Full
 
 
 class GracefulExit(Exception):
@@ -147,3 +148,25 @@ class RateMeter:
     def current_rate(self):
         with self._lock:
             return self._current_rate.value
+
+
+def get_from_queue_or_quit(queue: mp.Queue, event: mp.Event, polling_period: float):
+    while True:
+        if event.is_set():
+            raise GracefulExit()
+        try:
+            return queue.get(timeout=polling_period)
+        except Empty:
+            pass
+
+
+def put_in_queue_or_quit(
+    queue: mp.Queue, value, event: mp.Event, polling_period: float
+):
+    while True:
+        if event.is_set():
+            raise GracefulExit()
+        try:
+            return queue.put(value, timeout=polling_period)
+        except Full:
+            pass

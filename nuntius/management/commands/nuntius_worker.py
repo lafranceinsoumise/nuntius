@@ -3,12 +3,10 @@ import logging
 import multiprocessing as mp
 import multiprocessing.connection as mpc
 import signal
-import traceback
-from queue import Empty
-from smtplib import SMTPServerDisconnected, SMTPException, SMTPRecipientsRefused
+import smtplib
+from queue import Empty, Full
 from typing import Dict, List, Tuple
 
-from anymail.exceptions import AnymailError
 from django.core import mail
 from django.core.mail import EmailMessage
 from django.core.management import BaseCommand
@@ -19,6 +17,7 @@ from tenacity import (
     stop_after_attempt,
     retry_if_exception_type,
     wait_random_exponential,
+    TryAgain,
 )
 
 from nuntius import app_settings
@@ -37,44 +36,106 @@ from nuntius.utils.processes import (
     TokenBucket,
     RateMeter,
     GracefulExit,
+    get_from_queue_or_quit,
+    put_in_queue_or_quit,
 )
 
 try:
-    from anymail.exceptions import AnymailRecipientsRefused
+    from anymail import exceptions as anymail_exceptions
+
+    AnymailError = anymail_exceptions.AnymailError
+    AnymailAPIError = anymail_exceptions.AnymailAPIError
+    AnymailRecipientsRefused = anymail_exceptions.AnymailRecipientsRefused
 except:
 
-    class AnymailRecipientsRefused(BaseException):
+    class FakeException(Exception):
         pass
+
+    AnymailError = AnymailRecipientsRefused = AnymailAPIError = FakeException
 
 
 logger = logging.getLogger(__name__)
 
 
-@retry(
-    stop=stop_after_attempt(5),
-    wait=wait_random_exponential(),
-    retry=retry_if_exception_type((SMTPException, AnymailError)),
-)
-def send_message(message: EmailMessage, connection):
-    """Send an email message and retry in cases of failures.
-
-    This function will try sending up to 5 times, and uses an exponential
-    backoff strategy, where a random waiting time is chosen between 0 and a max
-    value that doubles every retry, to avoid all sender processes retrying at the
-    same time.
-
-    :param message: the email message to send
-    :param connection: the connection to use to send the message
-
+class ConnectionManager:
     """
-    try:
-        connection.send_messages([message])
-        connection.messages_sent += 1
-    except SMTPServerDisconnected:
-        connection.close()
-        connection.open()
-        connection.messages_sent = 0
-        raise
+    Manager around the SMTP or Mail API connection that handles reconnection and quitting
+    """
+
+    CONNECTION_ERRORS = (ConnectionError, smtplib.SMTPException, AnymailError)
+    MAIL_SENDING_ERRORS = (
+        smtplib.SMTPSenderRefused,
+        smtplib.SMTPDataError,
+        AnymailAPIError,
+    )
+
+    def __init__(self, quit_event):
+        self._connection = mail.get_connection(backend=app_settings.EMAIL_BACKEND)
+        self._message_counter = 0
+        self._quit_event = quit_event
+
+    @retry(
+        wait=wait_random_exponential(max=30),
+        retry=retry_if_exception_type(CONNECTION_ERRORS),
+    )
+    def open_connection(self):
+        """
+        Connect to the SMTP or API server and retry with exponential backoff.
+
+        This function will try up to 5 times to connect to the server, allowing for shaky
+        connections.
+        """
+        if self._quit_event.is_set():
+            raise GracefulExit()
+
+        try:
+            self._connection.open()
+        except Exception:
+            self._connection.close()
+            raise
+        else:
+            self._message_counter = 0
+
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_random_exponential(),
+        retry=retry_if_exception_type(MAIL_SENDING_ERRORS),
+    )
+    def send_message(self, message: EmailMessage):
+        """
+        Send an email message and retry in cases of failures.
+
+        This function will try sending up to 5 times, and uses an exponential
+        backoff strategy, where a random waiting time is chosen between 0 and a max
+        value that doubles every retry, to avoid all sender processes retrying at the
+        same time.
+
+        :param message: the email message to send
+        :param connection: the connection to use to send the message
+        """
+        if self._quit_event.is_set():
+            raise GracefulExit()
+
+        if (
+            app_settings.MAX_MESSAGES_PER_CONNECTION
+            and self._message_counter >= app_settings.MAX_MESSAGES_PER_CONNECTION
+        ):
+            self._connection.close()
+            self.open_connection()
+        try:
+            self._connection.send_messages([message])
+            self._message_counter += 1
+        except smtplib.SMTPServerDisconnected:
+            self._connection.close()
+            self.open_connection()
+            raise TryAgain
+
+    def __enter__(self):
+        self.open_connection()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._connection.close()
 
 
 @reset_sigmask
@@ -118,64 +179,63 @@ def sender_process(
     message: EmailMessage
     sent_event_id: int
 
-    while True:
-        try:
-            with mail.get_connection(backend=app_settings.EMAIL_BACKEND) as connection:
-                connection.messages_sent = 0
-                while (
-                    connection.messages_sent < app_settings.MAX_MESSAGES_PER_CONNECTION
-                ):
-                    if queue.empty() and quit_event.is_set():
-                        return
+    try:
+        with ConnectionManager(quit_event) as connection_manager:
+            while True:
+                # the timeout allows the loop to start again every few seconds so that the
+                # quit_event is checked and the process can quit if it has to.
+                message, sent_event_id = get_from_queue_or_quit(
+                    queue,
+                    event=quit_event,
+                    polling_period=app_settings.POLLING_INTERVAL,
+                )
 
-                    try:
-                        message, sent_event_id = queue.get(
-                            timeout=app_settings.POLLING_INTERVAL
-                        )
-                    except Empty:
-                        continue
+                sent_event_qs = CampaignSentEvent.objects.filter(id=sent_event_id)
+                # messages generated by the campaign manager should only have one recipient
+                email = message.to[0]
 
-                    sent_event_qs = CampaignSentEvent.objects.filter(id=sent_event_id)
-                    email = message.to[0]
+                # rate limit just before sending
+                if rate_limiter:
+                    rate_limiter.take()
 
-                    if rate_limiter:
-                        rate_limiter.take()
+                try:
+                    connection_manager.send_message(message)
+                except (smtplib.SMTPRecipientsRefused, AnymailRecipientsRefused):
+                    # exceptions linked to a specific recipient need not stop the sending
+                    CampaignSentEvent.objects.filter(id=sent_event_id).update(
+                        result=CampaignSentStatusType.BLOCKED
+                    )
+                except GracefulExit:
+                    raise
+                except Exception:
+                    campaign = Campaign.objects.get(campaignsentevent__id=sent_event_id)
+                    error_channel.send(campaign.id)
+                    logger.error(
+                        f"Error while sending email for campaign {campaign!r}",
+                        exc_info=True,
+                    )
 
-                    try:
-                        send_message(message, connection)
-                    except (SMTPRecipientsRefused, AnymailRecipientsRefused):
-                        CampaignSentEvent.objects.filter(id=sent_event_id).update(
-                            result=CampaignSentStatusType.BLOCKED
-                        )
-                    except Exception:
-                        traceback.print_exc()
-                        campaign = Campaign.objects.get(
-                            campaignsentevent__id=sent_event_id
-                        )
-                        error_channel.send(campaign.id)
-                    else:
-                        if rate_meter:
-                            rate_meter.count_up()
-                        if hasattr(message, "anymail_status"):
-                            if message.anymail_status.recipients[email].status in [
-                                "invalid",
-                                "rejected",
-                                "failed",
-                            ]:
-                                sent_event_qs.update(
-                                    result=CampaignSentStatusType.REJECTED
-                                )
-                            else:
-                                sent_event_qs.update(
-                                    result=CampaignSentStatusType.UNKNOWN,
-                                    esp_message_id=message.anymail_status.recipients[
-                                        email
-                                    ].message_id,
-                                )
+                else:
+                    if rate_meter:
+                        rate_meter.count_up()
+                    if hasattr(message, "anymail_status"):
+                        if message.anymail_status.recipients[email].status in [
+                            "invalid",
+                            "rejected",
+                            "failed",
+                        ]:
+                            sent_event_qs.update(result=CampaignSentStatusType.REJECTED)
                         else:
-                            sent_event_qs.update(result=CampaignSentStatusType.UNKNOWN)
-        except SMTPServerDisconnected:
-            continue
+                            sent_event_qs.update(
+                                result=CampaignSentStatusType.UNKNOWN,
+                                esp_message_id=message.anymail_status.recipients[
+                                    email
+                                ].message_id,
+                            )
+                    else:
+                        sent_event_qs.update(result=CampaignSentStatusType.UNKNOWN)
+    except GracefulExit:
+        return
 
 
 @reset_sigmask
@@ -204,11 +264,10 @@ def campaign_manager_process(
         )
     ).filter(already_sent=False)
 
-    finished = False
+    campaign_finished = False
 
     for subscriber in queryset.iterator():
         if quit_event.is_set():
-            # quit if sending is paused
             break
 
         if subscriber.get_subscriber_status() != AbstractSubscriber.STATUS_SUBSCRIBED:
@@ -222,20 +281,29 @@ def campaign_manager_process(
 
         message = message_for_event(sent_event)
 
-        queue.put((message, sent_event.id))
+        try:
+            put_in_queue_or_quit(
+                queue,
+                (message, sent_event.id),
+                event=quit_event,
+                polling_period=app_settings.POLLING_INTERVAL,
+            )
+        except GracefulExit:
+            break
     else:
-        finished = True
+        campaign_finished = True
 
     queue.close()
     queue.join_thread()
     # everything has been scheduled for sending:
-    if finished:
+    if campaign_finished:
         campaign.status = Campaign.STATUS_SENT
         campaign.save()
 
 
 class Command(BaseCommand):
     STATS_MESSAGE = """
+    STATISTICS
     Message queue size: {queue_size}
     Sender processes: {sender_processes}
     Campaign managers: {campaign_managers}
@@ -428,9 +496,10 @@ class Command(BaseCommand):
             del self.campaign_manager_processes[campaign_id]
 
         for campaign_id in campaign_errors:
+            Campaign.objects.filter(id=campaign_id).update(status=Campaign.STATUS_ERROR)
             if campaign_id in self.campaign_manager_processes:
                 logger.error(
-                    f"Unexpected error while trying to send message from campaign {campaign_id}...\nStopping manager."
+                    f"Unexpected error while trying to send message from campaign {campaign_id}...\n"
                 )
                 self.campaign_manager_processes[campaign_id][1].set()
 
