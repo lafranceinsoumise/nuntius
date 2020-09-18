@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1
+
+### Bug fixes
+
+* Fix a bug where the admin still had some references to celery tasks and would crash
+
 ## 2.0.0
 
 ### Breaking changes
