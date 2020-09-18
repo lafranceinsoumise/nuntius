@@ -91,8 +91,6 @@ class CampaignAdmin(admin.ModelAdmin):
                     "segment_subscribers",
                     "status",
                     "send_button",
-                    "task_uuid",
-                    "task_state",
                 )
             },
         ),
