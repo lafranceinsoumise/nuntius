@@ -4,7 +4,6 @@ import multiprocessing as mp
 import multiprocessing.connection as mpc
 import signal
 import smtplib
-from queue import Empty, Full
 from typing import Dict, List, Tuple
 
 from django.core import mail

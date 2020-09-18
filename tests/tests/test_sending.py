@@ -1,5 +1,5 @@
 import multiprocessing
-from queue import Queue
+from queue import Queue, Empty
 
 from django.core import mail
 from django.core.mail import EmailMessage
@@ -28,11 +28,22 @@ def run_campaign_manager_process_sync(campaign):
 
 def run_sender_process_sync(message_event_tuples, error_channel=None):
     queue = Queue()
+
     for t in message_event_tuples:
         queue.put(t)
 
     quit_event = multiprocessing.Event()
-    quit_event.set()
+
+    original_get = queue.get
+
+    def get(timeout):
+        try:
+            return original_get(block=False)
+        except Empty:
+            quit_event.set()
+            raise
+
+    queue.get = get
 
     sender_process(
         queue=queue,
