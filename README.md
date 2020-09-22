@@ -82,6 +82,10 @@ Nuntius models with something like:
     admin_site.register(nuntius.models.CampaignSentEvent, nuntius.admin.CampaignSentEventAdmin)
     ```
 
+## Other settings
+Use `NUNTIUS_DEFAULT_FROM_EMAIL`, `NUNTIUS_DEFAULT_FROM_NAME`, `NUNTIUS_DEFAULT_REPLY_TO_EMAIL`,
+`NUNTIUS_DEFAULT_REPLY_TO_NAME` to change default field values in the admin form.
+
 ## Advanced usage
 
 ### List segments

@@ -2,6 +2,7 @@ import json
 
 from django.contrib import admin
 from django.contrib.contenttypes.models import ContentType
+from django import forms
 from django.http import HttpResponseBadRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
@@ -55,6 +56,7 @@ class MosaicoImageUploadView(CreateView):
 class CampaignAdmin(admin.ModelAdmin):
     search_fields = ("name", "message_subject")
     autocomplete_fields = ("segment",)
+    prepopulated_fields = {"utm_name": ("name",)}
     fieldsets = (
         (
             None,
@@ -141,6 +143,14 @@ class CampaignAdmin(admin.ModelAdmin):
         "click_count",
     )
     save_as = True
+
+    def get_changeform_initial_data(self, request):
+        return {
+            "message_from_name": app_settings.DEFAULT_FROM_NAME,
+            "message_from_email": app_settings.DEFAULT_FROM_EMAIL,
+            "message_reply_to_name": app_settings.DEFAULT_REPLY_TO_NAME,
+            "message_reply_to_email": app_settings.DEFAULT_REPLY_TO_EMAIL,
+        }
 
     def save_model(self, request, campaign, form, change):
         if "_saveasnew" in request.POST:
