@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.0
+
+* Feature : add settings `NUNTIUS_DEFAULT_FROM_EMAIL`, `NUNTIUS_DEFAULT_FROM_NAME`,
+`NUNTIUS_DEFAULT_REPLY_TO_EMAIL`, and `NUNTIUS_DEFAULT_REPLY_TO_NAME`.
+* Fix a bug where webhook would error when ISP normalized email.
+
 ## 2.0.1
 
 ### Bug fixes
