@@ -50,7 +50,7 @@ def make_tracking_url(url, campaign, tracking_id, link_index):
 def href_url_replacer(campaign, tracking_id):
     link_counter = count()
 
-    def url_replace(match: re.Match):
+    def url_replace(match):
         url = make_tracking_url(
             match.group("url"), campaign, tracking_id, next(link_counter)
         )
