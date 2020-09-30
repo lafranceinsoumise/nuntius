@@ -1,4 +1,5 @@
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.module_loading import import_string
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 
@@ -48,3 +49,29 @@ MAX_MESSAGES_PER_CONNECTION = getattr(
 
 # Interval of time, in seconds, with which the worker must check for campaign status changes
 POLLING_INTERVAL = getattr(settings, "NUNTIUS_POLLING_INTERVAL", 2)
+
+
+def default_redis_getter():
+    import redis
+
+    return redis.StrictRedis()
+
+
+if getattr(settings, "NUNTIUS_REDIS_CONNECTION_GETTER", None) is None:
+    REDIS_CONNECTION_GETTER = default_redis_getter
+else:
+    if isinstance(settings.NUNTIUS_REDIS_CONNECTION_GETTER, str):
+
+        def redis_lazy_getter():
+            global REDIS_CONNECTION_GETTER
+            func = import_string(settings.NUNTIUS_REDIS_CONNECTION_GETTER)
+            REDIS_CONNECTION_GETTER = func
+            return func()
+
+        REDIS_CONNECTION_GETTER = redis_lazy_getter
+    else:
+        REDIS_CONNECTION_GETTER = settings.NUNTIUS_REDIS_CONNECTION_GETTER
+
+REDIS_WEBHOOK_QUEUE = getattr(
+    settings, "NUNTIUS_REDIS_WEHBOOK_QUEUE", "nuntius_webhook_queue"
+)

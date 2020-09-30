@@ -9,6 +9,7 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from django.http.request import validate_host
 from django.shortcuts import redirect, get_object_or_404
 
+from nuntius import app_settings
 from nuntius.models import MosaicoImage, CampaignSentEvent
 from nuntius.utils.messages import (
     generate_placeholder,
@@ -67,9 +68,9 @@ def mosaico_image_processor_view(request):
 
 
 def track_open_view(request, tracking_id):
-    CampaignSentEvent.objects.filter(tracking_id=tracking_id).update(
-        open_count=F("open_count") + 1
-    )
+    redis = app_settings.REDIS_CONNECTION_GETTER()
+    redis.rpush(app_settings.REDIS_WEBHOOK_QUEUE, str(tracking_id))
+
     return HttpResponse(
         b64decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
