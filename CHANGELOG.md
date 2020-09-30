@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.1.2
+
+### Bug fixes
+
+* `tracking_id` field from `CampaignSentEvent` models SHOULD have had an index from the beginning. Updating open and
+  click statistics could become very slow.
+
+## 2.1.1
+
+### Bug fixes
+
+* fix python-3.6 compatibility
+
 ## 2.1.0
 
 * Feature : add settings `NUNTIUS_DEFAULT_FROM_EMAIL`, `NUNTIUS_DEFAULT_FROM_NAME`,
