@@ -35,10 +35,9 @@ def update_subscriber(email, campaign_status):
         )
         return
 
-    default_params = {"consecutive": 1, "duration": 7, "limit": 3}
-    params = {**default_params, **app_settings.BOUNCE_PARAMS}
-
-    max_bounce_duration_ago = now() - timedelta(days=params["duration"])
+    max_bounce_duration_ago = now() - timedelta(
+        days=app_settings.BOUNCE_PARAMS["duration"]
+    )
 
     recent_successful_sent = email_events.filter(
         result__in=successful_sent, datetime__gt=max_bounce_duration_ago
@@ -50,12 +49,12 @@ def update_subscriber(email, campaign_status):
         and email_events.filter(
             result=CampaignSentStatusType.BOUNCED, datetime__gt=max_bounce_duration_ago
         ).count()
-        <= params["limit"]
+        <= app_settings.BOUNCE_PARAMS["limit"]
     ):
         return
 
     # it is also ok if we have at least a successful sending in last `consecutive` + 1
-    for sent_event in email_events[: params["consecutive"] + 1]:
+    for sent_event in email_events[: app_settings.BOUNCE_PARAMS["consecutive"] + 1]:
         if sent_event.result in successful_sent:
             return
 

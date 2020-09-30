@@ -32,7 +32,12 @@ DISABLE_DEFAULT_ADMIN = getattr(settings, "NUNTIUS_DISABLE_DEFAULT_ADMIN", False
 
 PUBLIC_URL = getattr(settings, "NUNTIUS_PUBLIC_URL", None)
 
-BOUNCE_PARAMS = getattr(settings, "NUNTIUS_BOUNCE_PARAMS", dict())
+BOUNCE_PARAMS = {
+    "consecutive": 1,
+    "duration": 7,
+    "limit": 3,
+    **getattr(settings, "NUNTIUS_BOUNCE_PARAMS", {}),
+}
 EMAIL_BACKEND = getattr(settings, "NUNTIUS_EMAIL_BACKEND", None)
 
 # Maximum rate with which emails may be sent, by number of emails per second
