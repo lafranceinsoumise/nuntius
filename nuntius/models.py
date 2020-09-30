@@ -288,11 +288,11 @@ class CampaignSentEvent(models.Model):
         null=True,
         blank=True,
     )
-    email = models.EmailField(_("Email address at sending time"), db_index=True)
+    email = models.EmailField(_("Email address at sending time"))
     campaign = models.ForeignKey(
         "Campaign", models.CASCADE, verbose_name=_("Campaign"), null=True, blank=True
     )
-    datetime = models.DateTimeField(_("Sending time"), auto_now_add=True, db_index=True)
+    datetime = models.DateTimeField(_("Sending time"), auto_now_add=True)
     result = models.CharField(
         _("Operation result"),
         max_length=2,
@@ -311,7 +311,11 @@ class CampaignSentEvent(models.Model):
         return token_urlsafe(9)
 
     tracking_id = models.CharField(
-        max_length=12, default=generate_tracking_id, null=True, editable=False
+        max_length=12,
+        default=generate_tracking_id,
+        null=True,
+        editable=False,
+        unique=True,
     )
     open_count = models.IntegerField(_("Open count"), default=0, editable=False)
     click_count = models.IntegerField(_("Click count"), default=0, editable=False)
@@ -320,6 +324,8 @@ class CampaignSentEvent(models.Model):
         unique_together = ("campaign", "subscriber")
         verbose_name = _("Sent event")
         verbose_name_plural = _("Sent events")
+        # this (email, datetime) index is required to handle bouncing rules
+        # see func:`nuntius.actions.update_subscriber`
         indexes = [models.Index(fields=["email", "datetime"])]
         ordering = ["-datetime"]
 
