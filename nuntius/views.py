@@ -17,6 +17,11 @@ from nuntius.utils.messages import (
 )
 
 
+TRACKING_IMAGE_CONTENT = b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+)
+
+
 def mosaico_image_processor_view(request):
     params = request.GET.get("params", "").split(",")
 
@@ -70,12 +75,7 @@ def track_open_view(request, tracking_id):
     CampaignSentEvent.objects.filter(tracking_id=tracking_id).update(
         open_count=F("open_count") + 1
     )
-    return HttpResponse(
-        b64decode(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
-        ),
-        content_type="image/png",
-    )
+    return HttpResponse(TRACKING_IMAGE_CONTENT, content_type="image/png")
 
 
 def track_click_view(request, tracking_id, link, signature):
