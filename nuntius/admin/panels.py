@@ -247,7 +247,7 @@ class CampaignAdmin(admin.ModelAdmin):
         )
 
     available_variables.short_description = _(
-        "Available variables (for first subscriber)"
+        "Available variables (example values from first subscriber)"
     )
 
     def mosaico_buttons(self, instance):
@@ -272,7 +272,7 @@ class CampaignAdmin(admin.ModelAdmin):
             )
 
         return format_html(
-            '<a href="{}" class="button">' + _("Access the editor") + "</a> "
+            '<a href="{}" class="button">' + _("Open the editor") + "</a> "
             '<a href="{}" class="button" target="_blank">'
             + _("Preview result")
             + "</a>",

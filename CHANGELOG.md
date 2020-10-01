@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.3
+
+### Languages
+
+* Put translations for French back into the package and update them
+
 ## 2.1.2
 
 ### Bug fixes

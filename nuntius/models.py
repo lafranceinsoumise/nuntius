@@ -63,7 +63,7 @@ class Campaign(models.Model):
         max_length=255,
         blank=True,
         help_text=_(
-            "Name used as utm_campaign parameter, used by various analytics tools."
+            "Value used as utm_campaign parameter, used by various analytics tools."
         ),
     )
 

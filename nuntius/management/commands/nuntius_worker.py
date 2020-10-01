@@ -18,6 +18,7 @@ from tenacity import (
     wait_random_exponential,
     TryAgain,
 )
+from django.utils.translation import gettext as _, gettext_lazy
 
 from nuntius import app_settings
 from nuntius.messages import message_for_event
@@ -210,7 +211,8 @@ def sender_process(
                     campaign = Campaign.objects.get(campaignsentevent__id=sent_event_id)
                     error_channel.send(campaign.id)
                     logger.error(
-                        f"Error while sending email for campaign {campaign!r}",
+                        _("Error while sending email for campaign %(campaign)s")
+                        % repr(campaign),
                         exc_info=True,
                     )
 
@@ -301,14 +303,14 @@ def campaign_manager_process(
 
 
 class Command(BaseCommand):
-    STATS_MESSAGE = """
-    STATISTICS
-    Message queue size: {queue_size}
-    Sender processes: {sender_processes}
-    Campaign managers: {campaign_managers}
-    Token bucket current capacity: {bucket_capacity}
-    Current sending rate: {sending_rate}
-    """.strip()
+    STATS_MESSAGE = gettext_lazy(
+        """STATISTICS
+Message queue size: %(queue_size)s
+Sender processes: %(sender_processes)s
+Campaign managers: %(campaign_managers)s
+Token bucket current capacity: %(bucket_capacity)s
+Current sending rate: %(sending_rate)s"""
+    )
 
     def handle(self, *args, **options):
         # used by campaign managers processes to queue emails to send
@@ -369,7 +371,7 @@ class Command(BaseCommand):
             "sending_rate": self.rate_meter.current_rate(),
         }
 
-        self.stderr.write(self.STATS_MESSAGE.format(**values), ending="\n")
+        self.stderr.write(self.STATS_MESSAGE % values, ending="\n")
 
     def start_sender_processes(self):
         for i in range(
@@ -394,7 +396,10 @@ class Command(BaseCommand):
             connection.close()
             with self._setup_signal_handlers_for_children():
                 process.start()
-            logger.info(f"Started sender process {process.pid}")
+            logger.info(
+                _("Started sender process %(process_pid)s")
+                % {"process_pid": process.pid}
+            )
 
     def check_campaigns(self):
         campaigns = Campaign.objects.filter(
@@ -408,9 +413,12 @@ class Command(BaseCommand):
             ):
                 # we need to cancel that task
                 logger.info(
-                    f"Stopping campaign manager n°{campaign.id} ({campaign.name[:20]})..."
+                    _(
+                        "Stopping campaign manager n°%(campaign_id)s (%(campaign_name)s)..."
+                    )
+                    % {"campaign_id": campaign.id, "campaign_name": campaign.name[20:]}
                 )
-                _, quit_event = self.campaign_manager_processes[campaign.id]
+                _process, quit_event = self.campaign_manager_processes[campaign.id]
                 quit_event.set()
 
             if (
@@ -432,12 +440,16 @@ class Command(BaseCommand):
                 connection.close()
                 with self._setup_signal_handlers_for_children():
                     process.start()
-                logger.info(f"Started campaign manager {process.pid} for {campaign!r}")
+                logger.info(
+                    _("Started campaign manager %(process_pid)s for %(campaign)s")
+                    % {"process_pid": process.pid, "campaign": repr(campaign)}
+                )
 
     def monitor_processes(self):
         sender_sentinels = [p.sentinel for p in self.sender_processes]
         campaign_manager_sentinels = {
-            p.sentinel: c_id for c_id, (p, _) in self.campaign_manager_processes.items()
+            p.sentinel: c_id
+            for c_id, (p, _e) in self.campaign_manager_processes.items()
         }
 
         events = mpc.wait(
@@ -467,12 +479,15 @@ class Command(BaseCommand):
             # let's reap process to avoid zombies
             process.join()
 
-            logger.error(f"Sender process {process.pid} unexpectedly quit...")
+            logger.error(
+                _("Sender process %(process_pid)s unexpectedly quit...")
+                % {"process_pid": process.pid}
+            )
             del self.sender_processes[i]
             del self.sender_pipes[i]
 
         for campaign_id in sorted(stopped_campaign_managers):
-            process, _ = self.campaign_manager_processes[campaign_id]
+            process, _quit_event = self.campaign_manager_processes[campaign_id]
             pid = process.pid
             # let's reap process to avoid zombies
             process.join()
@@ -485,11 +500,17 @@ class Command(BaseCommand):
             if campaign and campaign.status != campaign.STATUS_SENDING:
                 # process was asked to stop and did so correctly
                 logger.info(
-                    f"Campaign manager {pid} correctly stopped... Was taking care of {campaign!r}."
+                    _(
+                        "Campaign manager %(pid)s correctly stopped... Was taking care of %(campaign)s."
+                    )
+                    % {"pid": pid, "campaign": repr(campaign)}
                 )
             else:
                 logger.error(
-                    f"Campaign manager {pid} abruptly stops. Was taking care of {campaign!r}."
+                    _(
+                        "Campaign manager %(pid)s abruptly stops. Was taking care of %(campaign)s."
+                    )
+                    % {"pid": pid, "campaign": repr(campaign)}
                 )
 
             del self.campaign_manager_processes[campaign_id]
@@ -498,7 +519,10 @@ class Command(BaseCommand):
             Campaign.objects.filter(id=campaign_id).update(status=Campaign.STATUS_ERROR)
             if campaign_id in self.campaign_manager_processes:
                 logger.error(
-                    f"Unexpected error while trying to send message from campaign {campaign_id}...\n"
+                    _(
+                        "Unexpected error while trying to send message from campaign %(campaign_id)s...\n"
+                    )
+                    % {"campaign_id": campaign_id}
                 )
                 self.campaign_manager_processes[campaign_id][1].set()
 
@@ -509,17 +533,17 @@ class Command(BaseCommand):
                 self.check_campaigns()
                 self.monitor_processes()
         except (GracefulExit, KeyboardInterrupt):
-            logger.info("Asked to quit, asking all subprocesses to exit...")
+            logger.info(_("Asked to quit, asking all subprocesses to exit..."))
             self.senders_quit_event.set()
-            for _, event in self.campaign_manager_processes.values():
+            for _proces, event in self.campaign_manager_processes.values():
                 event.set()
 
-            logger.info("Waiting for all subprocesses to gracefully exit...")
+            logger.info(_("Waiting for all subprocesses to gracefully exit..."))
             # active_children joins children so removes zombies
             while mp.active_children():
                 mpc.wait(
                     [p.sentinel for p in self.sender_processes]
-                    + [p.sentinel for p, _ in self.campaign_manager_processes.values()]
+                    + [p.sentinel for p, _e in self.campaign_manager_processes.values()]
                 )
 
-            logger.info("All subprocesses have exited!")
+            logger.info(_("All subprocesses have exited!"))
