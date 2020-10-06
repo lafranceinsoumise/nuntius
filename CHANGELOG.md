@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.4
+
+### Bug fixes
+
+* 404 instead of 500 whenever a Mosaico image does not exist
+
 ## 2.1.3
 
 ### Languages
