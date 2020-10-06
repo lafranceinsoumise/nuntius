@@ -51,8 +51,8 @@ def mosaico_image_processor_view(request):
         if not validate_host(host, allowed_hosts):
             return HttpResponseBadRequest()
 
-        image = MosaicoImage.objects.get(
-            file=urlparse(src).path.replace(settings.MEDIA_URL, "", 1)
+        image = get_object_or_404(
+            MosaicoImage, file=urlparse(src).path.replace(settings.MEDIA_URL, "", 1)
         )
         image = Image.open(image.file.path)
 
