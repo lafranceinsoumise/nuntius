@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.6
+
+### Bug fixes
+* reply to field caused sending bug
+
 ## 2.1.4
 
 ### Bug fixes
