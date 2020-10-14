@@ -8,6 +8,7 @@ from django.db.models import F
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.http.request import validate_host
 from django.shortcuts import redirect, get_object_or_404
+from django.views.decorators.cache import cache_control
 
 from nuntius.models import MosaicoImage, CampaignSentEvent
 from nuntius.utils.messages import (
@@ -16,12 +17,12 @@ from nuntius.utils.messages import (
     extend_query,
 )
 
-
 TRACKING_IMAGE_CONTENT = b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 )
 
 
+@cache_control(public=True, max_age=3600)
 def mosaico_image_processor_view(request):
     params = request.GET.get("params", "").split(",")
 
