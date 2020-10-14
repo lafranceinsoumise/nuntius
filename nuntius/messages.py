@@ -101,7 +101,9 @@ def message_for_event(sent_event):
         body=text_body or html_body,
         from_email=campaign.from_header,
         to=[email],
-        reply_to=[campaign.reply_to_header],
+        reply_to=[campaign.reply_to_header]
+        if campaign.reply_to_header is not None
+        else None,
     )
 
     if text_body and html_body:
