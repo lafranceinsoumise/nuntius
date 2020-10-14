@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.7
+
+### Feature
+* Cache-control header on image field, so reverse proxy can cache img views
+
 ## 2.1.6
 
 ### Bug fixes
