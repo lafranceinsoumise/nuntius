@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.8
+
+### Features
+
+* Subprocesses now log unexpected exceptions as errors
+
+
 ## 2.1.7
 
 ### Feature
