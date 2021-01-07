@@ -38,6 +38,7 @@ from nuntius.utils.processes import (
     GracefulExit,
     get_from_queue_or_quit,
     put_in_queue_or_quit,
+    unexpected_exc_logger,
 )
 
 try:
@@ -139,6 +140,7 @@ class ConnectionManager:
 
 
 @reset_sigmask
+@unexpected_exc_logger
 def sender_process(
     *,
     queue: mp.Queue,
@@ -240,6 +242,7 @@ def sender_process(
 
 
 @reset_sigmask
+@unexpected_exc_logger
 def campaign_manager_process(
     *, campaign: Campaign, queue: mp.Queue, quit_event: mp.Event
 ):

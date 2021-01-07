@@ -1,10 +1,13 @@
 import contextlib
+import logging
 import multiprocessing as mp
 import signal
 import time
 import traceback
 from ctypes import c_double, c_ulong
 from queue import Empty, Full
+
+logger = logging.getLogger(__name__)
 
 
 class GracefulExit(Exception):
@@ -35,6 +38,24 @@ def print_stack_trace(sig, stack):
     Signal handler that prints the current track before resuming process
     """
     traceback.print_stack(stack)
+
+
+def unexpected_exc_logger(proc):
+    """
+    Decorator that intercepts exception and prints them
+    :param proc:
+    :return:
+    """
+
+    @contextlib.wraps(proc)
+    def wrapper(*args, **kwargs):
+        try:
+            return proc(*args, **kwargs)
+        except Exception:
+            logger.exception("Unexpected error.")
+            raise
+
+    return wrapper
 
 
 def reset_sigmask(proc):
