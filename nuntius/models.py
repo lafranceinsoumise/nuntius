@@ -326,7 +326,10 @@ class CampaignSentEvent(models.Model):
         verbose_name_plural = _("Sent events")
         # this (email, datetime) index is required to handle bouncing rules
         # see func:`nuntius.actions.update_subscriber`
-        indexes = [models.Index(fields=["email", "datetime"])]
+        indexes = [
+            models.Index(fields=["email", "datetime"]),
+            models.Index(fields=["subscriber", "datetime"]),
+        ]
         ordering = ["-datetime"]
 
 
