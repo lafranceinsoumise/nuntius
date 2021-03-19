@@ -46,7 +46,8 @@
             var post = $.post('{{ save_url }}', {
               html: vm.exportHTML(),
               metadata: vm.exportMetadata(),
-              content: vm.exportJSON()
+              content: vm.exportJSON(),
+              csrfmiddlewaretoken:'{{ csrf_token }}'
             });
             post.fail(function() {
               vm.notifier.error(vm.t('Unexpected error talking to server.'));
@@ -67,6 +68,9 @@
           fileuploadConfig: {
             url: '{{ image_upload_url }}',
             paramName: 'file',
+            formData: {
+                csrfmiddlewaretoken:'{{ csrf_token }}',
+            }
           }
         };
 
