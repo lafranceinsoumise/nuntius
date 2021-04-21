@@ -15,7 +15,7 @@ from django.views.generic import CreateView
 
 from nuntius import app_settings
 from nuntius.models import Campaign, MosaicoImage, CampaignSentEvent
-from nuntius.utils.messages import build_absolute_uri
+from nuntius.utils.messages import build_image_absolute_uri
 
 
 def subscriber_class():
@@ -33,10 +33,12 @@ class MosaicoImageUploadView(CreateView):
         return {
             "name": image.file.name,
             "size": image.file.size,
-            "url": build_absolute_uri(self.request, image.file.url),
-            "deleteUrl": build_absolute_uri(self.request, image.file.url),
+            "url": build_image_absolute_uri(self.request, image.file.url),
+            "deleteUrl": build_image_absolute_uri(self.request, image.file.url),
             "deleteType": "DELETE",
-            "thumbnailUrl": build_absolute_uri(self.request, image.file.thumbnail.url),
+            "thumbnailUrl": build_image_absolute_uri(
+                self.request, image.file.thumbnail.url
+            ),
         }
 
     def form_invalid(self, form):
@@ -342,7 +344,7 @@ class CampaignAdmin(admin.ModelAdmin):
             request=request,
             template="nuntius/editor.html",
             context={
-                "image_processor_backend_url": build_absolute_uri(
+                "image_processor_backend_url": build_image_absolute_uri(
                     request, reverse("nuntius_mosaico_image_processor")
                 ),
                 "save_url": reverse("admin:nuntius_campaign_mosaico_save", args=[pk]),

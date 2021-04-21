@@ -18,7 +18,7 @@ RE_URL = re.compile(
 def insert_tracking_image_template(html_message):
     # use old style formatting to avoid ugly escaping of template variable
     img_url = "%s%sopen/{{ nuntius_tracking_id }}" % (
-        app_settings.PUBLIC_URL,
+        app_settings.IMAGES_URL,
         reverse("nuntius_mount_path"),
     )
     img = f'<img src="{img_url}" width="1" height="1" alt="nt">'
@@ -44,7 +44,7 @@ def make_tracking_url(url, campaign, tracking_id, link_index):
             "link": url_quote(url, safe=""),
         },
     )
-    return f"{app_settings.PUBLIC_URL}{relative_url}"
+    return f"{app_settings.LINKS_URL}{relative_url}"
 
 
 def href_url_replacer(campaign, tracking_id):

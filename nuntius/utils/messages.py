@@ -58,9 +58,9 @@ def generate_placeholder(width, height):
     return image
 
 
-def build_absolute_uri(request, location):
-    if app_settings.PUBLIC_URL:
-        return app_settings.PUBLIC_URL + location
+def build_image_absolute_uri(request, location):
+    if app_settings.IMAGES_URL is not None:
+        return app_settings.IMAGES_URL + location
     return request.build_absolute_uri(location)
 
 

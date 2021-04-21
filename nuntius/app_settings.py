@@ -31,6 +31,8 @@ DEFAULT_REPLY_TO_NAME = getattr(settings, "NUNTIUS_DEFAULT_REPLY_TO_NAME", "")
 DISABLE_DEFAULT_ADMIN = getattr(settings, "NUNTIUS_DISABLE_DEFAULT_ADMIN", False)
 
 PUBLIC_URL = getattr(settings, "NUNTIUS_PUBLIC_URL", None)
+IMAGES_URL = getattr(settings, "NUNTIUS_IMAGES_URL", PUBLIC_URL)
+LINKS_URL = getattr(settings, "NUNTIUS_LINKS_URL", PUBLIC_URL)
 
 BOUNCE_PARAMS = {
     "consecutive": 1,
