@@ -2,7 +2,6 @@ import json
 
 from django.contrib import admin
 from django.contrib.contenttypes.models import ContentType
-from django import forms
 from django.http import HttpResponseBadRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse

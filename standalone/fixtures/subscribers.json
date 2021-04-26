@@ -1,0 +1,72 @@
+[
+  {
+    "model": "standalone.segment",
+    "pk": "subscribed",
+    "fields": {}
+  },
+  {
+    "model": "standalone.segment",
+    "pk": "unsubscribed",
+    "fields": {}
+  },
+  {
+    "model": "standalone.segment",
+    "pk": "bounced",
+    "fields": {}
+  },
+  {
+    "model": "standalone.segment",
+    "pk": "complained",
+    "fields": {}
+  },
+  {
+    "model": "standalone.segment",
+    "pk": "all_status",
+    "fields": {}
+  },
+  {
+    "model": "standalone.subscriber",
+    "pk": 1,
+    "fields": {
+      "email": "a@example.com",
+      "subscriber_status": 1,
+      "segments": ["subscribed", "all_status"]
+    }
+  },
+  {
+    "model": "standalone.subscriber",
+    "pk": 2,
+    "fields": {
+      "email": "b@example.com",
+      "subscriber_status": 1,
+      "segments": ["subscribed", "all_status"]
+    }
+  },
+  {
+    "model": "standalone.subscriber",
+    "pk": 3,
+    "fields": {
+      "email": "c@example.com",
+      "subscriber_status": 2,
+      "segments": ["unsubscribed", "all_status"]
+    }
+  },
+  {
+    "model": "standalone.subscriber",
+    "pk": 4,
+    "fields": {
+      "email": "d@example.com",
+      "subscriber_status": 3,
+      "segments": ["bounced", "all_status"]
+    }
+  },
+  {
+    "model": "standalone.subscriber",
+    "pk": 5,
+    "fields": {
+      "email": "e@example.com",
+      "subscriber_status": 4,
+      "segments": ["complained", "all_status"]
+    }
+  }
+]
