@@ -1,0 +1,53 @@
+[tool.poetry]
+name = "nuntius"
+version = "2.2.0"
+description = "A newsletter app to be used with Django or standalone."
+authors = ["Jill Royer <hello@jillroyer.me>", "Arthur Cheysson"]
+license = "GPLv3"
+readme = "README.md"
+repository = "https://github.com/lafranceinsoumise/nuntius"
+
+classifiers= [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 2.0",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Communications :: Email",
+]
+
+packages = [
+    { include = "nuntius" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+Django = "^2.0"
+Pillow = "*"
+django-stdimage = "*"
+html2text = "*"
+tenacity = "*"
+django-anymail = { version = "*", optional = true }
+boto3 = { version = "*", optional = true }
+mysqlclient = { version = "*", optional = true }
+
+[tool.poetry.dev-dependencies]
+tqdm = "^4.60.0"
+
+black = "==18.9b0"
+
+[tool.poetry.extras]
+anymail = ["django-anymail", "boto3"]
+mysql = ["mysqlclient"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
