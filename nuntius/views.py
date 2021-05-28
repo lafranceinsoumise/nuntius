@@ -1,5 +1,6 @@
 from base64 import b64decode
 from urllib.parse import urlparse, unquote
+from urllib.request import urlopen
 
 from PIL import Image
 from django.conf import settings
@@ -55,7 +56,10 @@ def mosaico_image_processor_view(request):
         image = get_object_or_404(
             MosaicoImage, file=urlparse(src).path.replace(settings.MEDIA_URL, "", 1)
         )
-        image = Image.open(image.file.path)
+        try:
+            image = Image.open(image.file.path)
+        except NotImplementedError:
+            image = Image.open(urlopen(image.file.url))
 
         if width and height:
             ratio = min(width / image.size[0], height / image.size[1])
