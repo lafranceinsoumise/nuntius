@@ -45,17 +45,14 @@ def mosaico_image_processor_view(request):
         return response
 
     if request.GET.get("src") and (width or height):
-        src = request.GET.get("src")
-        host = urlparse(src).netloc.split(":")[0]
-        allowed_hosts = settings.ALLOWED_HOSTS
-        if settings.DEBUG and not allowed_hosts:
-            allowed_hosts = ["localhost", "127.0.0.1", "[::1]"]
-        if not validate_host(host, allowed_hosts):
+        try:
+            path = urlparse(unquote(request.GET.get("src"))).path.replace(
+                settings.MEDIA_URL, "", 1
+            )
+        except ValueError:
             return HttpResponseBadRequest()
 
-        image = get_object_or_404(
-            MosaicoImage, file=urlparse(src).path.replace(settings.MEDIA_URL, "", 1)
-        )
+        image = get_object_or_404(MosaicoImage, file=path)
         try:
             image = Image.open(image.file.path)
         except NotImplementedError:
