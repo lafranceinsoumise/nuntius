@@ -1,4 +1,5 @@
 from django.db import models
+from push_notifications.models import APNSDevice, GCMDevice
 
 from nuntius.models import BaseSubscriber, BaseSegment
 
@@ -25,6 +26,19 @@ class Segment(BaseSegment, models.Model):
 
 class Subscriber(BaseSubscriber):
     segments = models.ManyToManyField("standalone.Segment")
+
+    def get_subscriber_push_devices(self):
+        return [
+            device
+            for device in APNSDevice.objects.filter(
+                registration_id=self.email, active=True
+            )
+        ] + [
+            device
+            for device in GCMDevice.objects.filter(
+                registration_id=self.email, active=True
+            )
+        ]
 
     def get_subscriber_data(self):
         return {

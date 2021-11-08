@@ -1,12 +1,14 @@
 # Nuntius
 
-Nuntius is a newsletter application for Django.
+Nuntius is a newsletter / push notification campaign application for Django.
 
 Nuntius integrates with your Django project.
 It is very agnostic about your subscribers and subscriber lists models.
 
 It features [Mosaico](https://mosaico.io/), a drag-and-drop email
-editor, for sending beautiful emails to your subscribers.
+editor, for sending beautiful emails to your subscribers and 
+push notification support through Apple Push Notification service (APNs) 
+and Google Cloud Messaging (GCM).
 
 ## How it works
 
@@ -22,7 +24,7 @@ existing segments.
 
 ## Installation
 
-1. Add "nuntius" to your INSTALLED_APPS setting like this:
+1. Add "push_notifications" and "nuntius" to your INSTALLED_APPS setting like this:
     ````python
         INSTALLED_APPS = [
             'django.contrib.admin',
@@ -32,6 +34,7 @@ existing segments.
             'django.contrib.messages',
             'django.contrib.staticfiles',
             ...
+            'push_notifications',
             'nuntius',
         ]
     ````
@@ -59,6 +62,13 @@ existing segments.
     * `get_subscriber_data()`
         must return the dictionnary of values which can be used as substitution in
         the emails. Default is `{"email": self.get_subscriber_email()}`.
+    
+    * `get_subscriber_push_devices()` (optional)
+        must return a list of `django-push-notifications.APNSDevice` 
+        and `django-push-notifications.GCMDevice` model instances 
+        (cf. [the `django-push-notifications` documentation](https://github.com/jazzband/django-push-notifications))
+        
+
  
 4. Tell Nuntius how to find your subscriber model in `settings.py`
     ````python
@@ -85,6 +95,21 @@ Nuntius models with something like:
 ## Other settings
 Use `NUNTIUS_DEFAULT_FROM_EMAIL`, `NUNTIUS_DEFAULT_FROM_NAME`, `NUNTIUS_DEFAULT_REPLY_TO_EMAIL`,
 `NUNTIUS_DEFAULT_REPLY_TO_NAME` to change default field values in the admin form.
+
+Use `NUNTIUS_ENABLED_CAMPAIGN_TYPES` to choose which types of campaign 
+you want to enable by default (`email` *default*, `push` or `email,push`)
+
+In order to use push notifications, `NUNTIUS_PUSH_NOTIFICATION_SETTINGS` must be specified
+(cf. [the `django-push-notifications` documentation](https://github.com/jazzband/django-push-notifications#settings-list))
+```py
+NUNTIUS_PUSH_NOTIFICATIONS_SETTINGS = {
+    "FCM_API_KEY": "[your api key]",
+    "GCM_API_KEY": "[your api key]",
+    "APNS_CERTIFICATE": "/path/to/your/certificate.pem",
+    "APNS_TOPIC": "com.example.push_test",
+    # ...
+}
+```
 
 ## Advanced usage
 
@@ -260,7 +285,8 @@ as permanently bounced.
 
 ## Tracking
 
-Opening and clicks are tracked by adding a white pixel and replacing links in emails.
+Opening and clicks are tracked by adding a white pixel and replacing links in emails, and by using a proxy URL on
+push notification clicks.
 
 Nuntius also adds [UTM parameters](https://en.wikipedia.org/wiki/UTM_parameters) to every URL with the following values:
 * `utm_source`: *"nuntius"*

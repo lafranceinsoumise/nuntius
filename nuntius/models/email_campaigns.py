@@ -1,8 +1,6 @@
 import re
-from secrets import token_urlsafe, token_bytes
+from secrets import token_urlsafe
 
-from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import fields, Sum, Value
 from django.db.models.functions import Coalesce
@@ -12,28 +10,13 @@ from django.utils.translation import gettext_lazy as _
 from stdimage import StdImageField
 
 from nuntius import app_settings
+from nuntius.models.mixins import AbstractCampaign
 from nuntius.utils.messages import generate_plain_text
 
 MOSAICO_TO_DJANGO_TEMPLATE_VARS = re.compile(r"\[([A-Z_-]+)]")
 
 
-class Campaign(models.Model):
-    STATUS_WAITING = 0
-    STATUS_SENDING = 1
-    STATUS_SENT = 2
-    STATUS_ERROR = 3
-    STATUS_CHOICES = (
-        (STATUS_WAITING, _("Waiting")),
-        (STATUS_SENDING, _("Sending")),
-        (STATUS_SENT, _("Sent")),
-        (STATUS_ERROR, _("Error")),
-    )
-
-    name = fields.CharField(_("Name (invisible to subscribers)"), max_length=255)
-    created = fields.DateTimeField(_("Created"), auto_now_add=True)
-    updated = fields.DateTimeField(_("Updated"), auto_now=True)
-    first_sent = fields.DateTimeField(_("First sent"), blank=True, null=True)
-
+class Campaign(AbstractCampaign):
     message_from_name = fields.CharField(_('"From" name'), max_length=255, blank=True)
     message_from_email = fields.EmailField(_('"From" email address'), max_length=255)
     message_reply_to_name = fields.CharField(
@@ -48,29 +31,6 @@ class Campaign(models.Model):
     message_mosaico_data = fields.TextField(_("Mosaico data"), blank=True)
     message_content_html = fields.TextField(_("Message content (HTML)"), blank=True)
     message_content_text = fields.TextField(_("Message content (text)"), blank=True)
-
-    segment = models.ForeignKey(
-        to=app_settings.NUNTIUS_SEGMENT_MODEL,
-        verbose_name=_("Subscriber segment"),
-        on_delete=models.SET_NULL,
-        null=True,
-    )
-
-    status = fields.IntegerField(choices=STATUS_CHOICES, default=STATUS_WAITING)
-
-    utm_name = fields.CharField(
-        _("UTM name (visible to subscribers)"),
-        max_length=255,
-        blank=True,
-        help_text=_(
-            "Value used as utm_campaign parameter, used by various analytics tools."
-        ),
-    )
-
-    def generate_signature_key():
-        return token_bytes(20)
-
-    signature_key = fields.BinaryField(max_length=20, default=generate_signature_key)
 
     def save(self, *args, **kwargs):
         if self.message_mosaico_data:
@@ -136,16 +96,6 @@ class Campaign(models.Model):
             .count()
         )
 
-    def get_subscribers_queryset(self):
-        if self.segment is None:
-            model = app_settings.NUNTIUS_SUBSCRIBER_MODEL
-            model_class = ContentType.objects.get(
-                app_label=model.split(".")[0], model=model.split(".")[1].lower()
-            ).model_class()
-            return model_class.objects.all()
-        else:
-            return self.segment.get_subscribers_queryset()
-
     def get_event_for_subscriber(self, subscriber):
         event, _ = CampaignSentEvent.objects.get_or_create(
             campaign=self,
@@ -153,9 +103,6 @@ class Campaign(models.Model):
             defaults={"email": subscriber.get_subscriber_email()},
         )
         return event
-
-    def __str__(self):
-        return self.name
 
     def __repr__(self):
         return f"Campaign(id={self.id!r}, name={self.name!r})"
@@ -185,75 +132,8 @@ class Campaign(models.Model):
         return None
 
     class Meta:
-        verbose_name = _("Campaign")
-        verbose_name_plural = _("Campaigns")
-
-
-class BaseSegment:
-    def get_display_name(self):
-        raise NotImplementedError()
-
-    def get_subscribers_queryset(self):
-        raise NotImplementedError()
-
-    def get_subscribers_count(self):
-        raise NotImplementedError
-
-    class Meta:
-        swappable = "NUNTIUS_SEGMENT_MODEL"
-
-
-class BaseSubscriberManager(models.Manager):
-    def set_subscriber_status(self, email_address, status):
-        try:
-            subscriber = self.get(email=email_address)
-        except ObjectDoesNotExist:
-            return
-        subscriber.subscriber_status = status
-        subscriber.save(update_fields=["subscriber_status"])
-
-    def get_subscriber(self, email_address):
-        return self.filter(email=email_address).last()
-
-
-class AbstractSubscriber:
-    STATUS_SUBSCRIBED = 1
-    STATUS_UNSUBSCRIBED = 2
-    STATUS_BOUNCED = 3
-    STATUS_COMPLAINED = 4
-    STATUS_CHOICES = (
-        (STATUS_SUBSCRIBED, _("Subscribed")),
-        (STATUS_UNSUBSCRIBED, _("Unsubscribed")),
-        (STATUS_BOUNCED, _("Bounced")),
-        (STATUS_COMPLAINED, _("Complained")),
-    )
-
-    def get_subscriber_status(self):
-        if hasattr(self, "subscriber_status"):
-            return self.subscriber_status
-        raise NotImplementedError()
-
-    def get_subscriber_email(self):
-        if hasattr(self, "email"):
-            return self.email
-
-        raise NotImplementedError()
-
-    def get_subscriber_data(self):
-        return {"email": self.get_subscriber_email()}
-
-    class Meta:
-        abstract = True
-
-
-class BaseSubscriber(AbstractSubscriber, models.Model):
-    objects = BaseSubscriberManager()
-
-    email = fields.EmailField(max_length=255)
-    subscriber_status = fields.IntegerField(choices=AbstractSubscriber.STATUS_CHOICES)
-
-    class Meta(AbstractSubscriber.Meta):
-        swappable = "NUNTIUS_SUBSCRIBER_MODEL"
+        verbose_name = _("email campaign")
+        verbose_name_plural = _("email campaigns")
 
 
 class CampaignSentStatusType:
@@ -322,8 +202,8 @@ class CampaignSentEvent(models.Model):
 
     class Meta:
         unique_together = ("campaign", "subscriber")
-        verbose_name = _("Sent event")
-        verbose_name_plural = _("Sent events")
+        verbose_name = _("email sent event")
+        verbose_name_plural = _("email sent events")
         # this (email, datetime) index is required to handle bouncing rules
         # see func:`nuntius.actions.update_subscriber`
         indexes = [

@@ -6,7 +6,7 @@ from django.core.mail import EmailMessage
 from django.test import TestCase
 
 from nuntius.management.commands import nuntius_worker
-from nuntius.management.commands.nuntius_worker import sender_process
+from nuntius.management.commands.nuntius_worker import mailer_process
 from nuntius.messages import message_for_event
 from nuntius.models import Campaign, BaseSubscriber
 from standalone.models import Segment, Subscriber
@@ -17,7 +17,7 @@ def run_campaign_manager_process_sync(campaign):
     queue.close = lambda: None
     queue.join_thread = lambda: None
 
-    nuntius_worker.campaign_manager_process(
+    nuntius_worker.email_campaign_manager_process(
         campaign=campaign, queue=queue, quit_event=multiprocessing.Event()
     )
     message_event_tuples = []
@@ -45,7 +45,7 @@ def run_sender_process_sync(message_event_tuples, error_channel=None):
 
     queue.get = get
 
-    sender_process(
+    mailer_process(
         queue=queue,
         error_channel=error_channel or "SHOULD NOT BE USED",
         quit_event=quit_event,
@@ -122,7 +122,7 @@ class SendingTestCase(TestCase):
 
     def test_segments(self):
         self.assertEqual(
-            Segment.objects.get(id="subscribed").get_subscribers_queryset().count(), 2,
+            Segment.objects.get(id="subscribed").get_subscribers_queryset().count(), 2
         )
 
     def test_send_emails(self):

@@ -20,9 +20,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         max_length=255, primary_key=True, serialize=False, unique=True
                     ),
-                ),
+                )
             ],
-            options={"swappable": "NUNTIUS_SEGMENT_MODEL",},
+            options={"swappable": "NUNTIUS_SEGMENT_MODEL"},
             bases=(nuntius.models.BaseSegment, models.Model),
         ),
         migrations.CreateModel(
@@ -51,7 +51,7 @@ class Migration(migrations.Migration):
                 ),
                 ("segments", models.ManyToManyField(to=settings.NUNTIUS_SEGMENT_MODEL)),
             ],
-            options={"abstract": False, "swappable": "NUNTIUS_SUBSCRIBER_MODEL",},
+            options={"abstract": False, "swappable": "NUNTIUS_SUBSCRIBER_MODEL"},
             bases=(nuntius.models.AbstractSubscriber, models.Model),
         ),
     ]

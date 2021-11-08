@@ -11,7 +11,7 @@ from django.http.request import validate_host
 from django.shortcuts import redirect, get_object_or_404
 from django.views.decorators.cache import cache_control
 
-from nuntius.models import MosaicoImage, CampaignSentEvent
+from nuntius.models import MosaicoImage, CampaignSentEvent, PushCampaignSentEvent
 from nuntius.utils.messages import (
     generate_placeholder,
     url_signature_is_valid,
@@ -80,10 +80,14 @@ def track_open_view(request, tracking_id):
     return HttpResponse(TRACKING_IMAGE_CONTENT, content_type="image/png")
 
 
-def track_click_view(request, tracking_id, link, signature):
-    campaign_sent_event = get_object_or_404(CampaignSentEvent, tracking_id=tracking_id)
+def track_click_view(
+    request, tracking_id, link, signature, campaign_sent_event_model, medium
+):
+    campaign_sent_event = get_object_or_404(
+        campaign_sent_event_model, tracking_id=tracking_id
+    )
 
-    CampaignSentEvent.objects.filter(tracking_id=tracking_id).update(
+    campaign_sent_event_model.objects.filter(tracking_id=tracking_id).update(
         click_count=F("click_count") + 1
     )
 
@@ -93,9 +97,22 @@ def track_click_view(request, tracking_id, link, signature):
         raise PermissionDenied()
 
     utm_campaign = campaign_sent_event.campaign.utm_name
+
     url = extend_query(
         url,
         defaults={"utm_campaign": utm_campaign},
-        replace={"utm_source": "nuntius", "utm_medium": "email"},
+        replace={"utm_source": "nuntius", "utm_medium": medium},
     )
     return redirect(url)
+
+
+def track_email_click_view(request, tracking_id, link, signature):
+    return track_click_view(
+        request, tracking_id, link, signature, CampaignSentEvent, "email"
+    )
+
+
+def track_push_click_view(request, tracking_id, link, signature):
+    return track_click_view(
+        request, tracking_id, link, signature, PushCampaignSentEvent, "push"
+    )

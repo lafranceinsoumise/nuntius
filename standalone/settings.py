@@ -1,5 +1,7 @@
 import os
 
+import django.db.models
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEBUG = True
 SECRET_KEY = "fake-key"
@@ -12,6 +14,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "nuntius",
+    "push_notifications",
 ]
 
 MIDDLEWARE = [
@@ -42,7 +45,14 @@ TEMPLATES = [
     }
 ]
 
-DATABASES = {"default": {"ENGINE": "django.db.backends.mysql", "NAME": "nuntius"}}
+DATABASES = {
+    "default": {
+        "ENGINE": os.environ.get("DB_ENGINE", "django.db.backends.mysql"),
+        "NAME": os.environ.get("DB_NAME", "nuntius"),
+        "USER": os.environ.get("DB_USER", "nuntius"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", "password"),
+    }
+}
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -59,13 +69,31 @@ STATIC_URL = "/static/"
 USE_I18N = True
 LANGUAGE_CODE = os.environ.get("LANGUAGE_CODE", "en")
 
+NUNTIUS_PUBLIC_URL = os.environ.get("NUNTIUS_PUBLIC_URL", "http://localhost:8000")
+NUNTIUS_ENABLED_CAMPAIGN_TYPES = os.environ.get(
+    "NUNTIUS_ENABLED_CAMPAIGN_TYPES", "email"
+).split(",")
 NUNTIUS_DISABLE_DEFAULT_ADMIN = True
 NUNTIUS_SEGMENT_MODEL = "standalone.Segment"
 NUNTIUS_SUBSCRIBER_MODEL = "standalone.Subscriber"
+# Emails
 NUNTIUS_DEFAULT_FROM_EMAIL = "test@example.com"
 NUNTIUS_DEFAULT_FROM_NAME = "Sender"
 NUNTIUS_DEFAULT_REPLY_TO_EMAIL = "replyto@example.com"
 NUNTIUS_DEFAULT_REPLY_TO_NAME = "Reply to me"
+# Push notifications
+NUNTIUS_PUSH_NOTIFICATION_SETTINGS = {
+    "UPDATE_ON_DUPLICATE_REG_ID": True,
+    "UNIQUE_REG_ID": True,
+    "APNS_AUTH_KEY_PATH": os.environ.get(
+        "APNS_AUTH_KEY_PATH", os.path.join(os.path.dirname(BASE_DIR), "..", "apns.p8")
+    ),
+    "APNS_AUTH_KEY_ID": os.environ.get("APNS_AUTH_KEY_ID"),
+    "APNS_TEAM_ID": os.environ.get("APNS_TEAM_ID"),
+    "APNS_TOPIC": os.environ.get("APNS_TOPIC", "fr.nuntius.ios"),
+    "APNS_USE_SANDBOX": os.environ.get("APNS_USE_SANDBOX", "true").lower() == "true",
+    "FCM_API_KEY": os.environ.get("FCM_API_KEY", "[your api key]"),
+}
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = "media"

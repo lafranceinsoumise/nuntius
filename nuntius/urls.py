@@ -4,7 +4,8 @@ from django.views.generic import RedirectView
 from nuntius.views import (
     mosaico_image_processor_view,
     track_open_view,
-    track_click_view,
+    track_email_click_view,
+    track_push_click_view,
 )
 
 urlpatterns = [
@@ -17,7 +18,12 @@ urlpatterns = [
     path("open/<str:tracking_id>", track_open_view, name="nuntius_track_open"),
     path(
         "link/<str:tracking_id>/<str:link>/<str:signature>",
-        track_click_view,
+        track_email_click_view,
         name="nuntius_track_click",
+    ),
+    path(
+        "push/<str:tracking_id>/<str:link>/<str:signature>",
+        track_push_click_view,
+        name="nuntius_track_push_click",
     ),
 ]

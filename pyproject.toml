@@ -38,6 +38,9 @@ tenacity = "*"
 django-anymail = { version = "*", optional = true }
 boto3 = { version = "*", optional = true }
 mysqlclient = { version = "*", optional = true }
+django-push-notifications = "^2.0.0"
+pywebpush = "^1.14.0"
+apns = "^2.0.1"
 
 [tool.poetry.dev-dependencies]
 tqdm = "^4.60.0"
