@@ -9,145 +9,171 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 2.1.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-10-01 08:21-0500\n"
+"POT-Creation-Date: 2021-11-09 16:43+0100\n"
 "PO-Revision-Date: 2020-10-01 15:22+0200\n"
-"Last-Translator: Arthur Cheysson <arthur@cheysson.fr>\n"
+"Last-Translator: Giuseppe De Ponte <giuseppedeponte@gmail.com>\n"
 "Language: Français\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: nuntius/admin/fields.py:44
+#: admin/fields.py:44
 msgid "Send to everyone"
 msgstr "Envoyer à tout le monde"
 
-#: nuntius/admin/panels.py:78
+#: admin/panels.py:79
 msgid "Content"
 msgstr "Contenu"
 
-#: nuntius/admin/panels.py:88
+#: admin/panels.py:89 admin/push_panels.py:32
 msgid "Sending details"
 msgstr "Paramètres de l'envoi"
 
-#: nuntius/admin/panels.py:100
+#: admin/panels.py:103 admin/push_panels.py:46
 msgid "Sending reports"
 msgstr "Paramètres de l'envoi"
 
-#: nuntius/admin/panels.py:169
+#: admin/panels.py:174 admin/push_panels.py:80
 msgid "Subscribers"
 msgstr "Abonné⋅e⋅s"
 
-#: nuntius/admin/panels.py:180
+#: admin/panels.py:185 admin/push_panels.py:91
 msgid "Sent to"
 msgstr "Envoyé à"
 
-#: nuntius/admin/panels.py:185
+#: admin/panels.py:190
 msgid "Ok"
 msgstr "Ok"
 
-#: nuntius/admin/panels.py:190 nuntius/models.py:227 nuntius/models.py:275
+#: admin/panels.py:195 models/email_campaigns.py:155 models/subscriber.py:42
 msgid "Bounced"
 msgstr "Bounce"
 
-#: nuntius/admin/panels.py:195 nuntius/models.py:228 nuntius/models.py:276
+#: admin/panels.py:200 models/email_campaigns.py:156 models/subscriber.py:43
 msgid "Complained"
 msgstr "Plaintes"
 
-#: nuntius/admin/panels.py:200
+#: admin/panels.py:205
 msgid "Blocked"
 msgstr "Bloqués"
 
-#: nuntius/admin/panels.py:205 nuntius/models.py:320
+#: admin/panels.py:210 models/email_campaigns.py:200
 msgid "Open count"
 msgstr "Nombre d'ouvertures"
 
-#: nuntius/admin/panels.py:210
+#: admin/panels.py:215
 msgid "Unique open count"
 msgstr "Nombre d'ouvertures uniques"
 
-#: nuntius/admin/panels.py:215 nuntius/models.py:321
+#: admin/panels.py:220 admin/push_panels.py:106 models/email_campaigns.py:201
+#: models/push_campaigns.py:108
 msgid "Click count"
 msgstr "Nombre de clics"
 
-#: nuntius/admin/panels.py:220
+#: admin/panels.py:225
 msgid "Unique click count"
 msgstr "Nombre de clics uniques"
 
-#: nuntius/admin/panels.py:227
+#: admin/panels.py:232 admin/push_panels.py:113
 msgid "Pause"
-msgstr "Pause"
+msgstr "Suspendre"
 
-#: nuntius/admin/panels.py:231 nuntius/admin/panels.py:235
+#: admin/panels.py:236 admin/panels.py:240 admin/push_panels.py:117
+#: admin/push_panels.py:121
 msgid "Send"
 msgstr "Envoyer"
 
-#: nuntius/admin/panels.py:250
+#: admin/panels.py:255
 msgid "Available variables (example values from first subscriber)"
 msgstr "Variables disponibles (exemples pour le premier abonné)"
 
-#: nuntius/admin/panels.py:275
+#: admin/panels.py:280
 msgid "Open the editor"
 msgstr "Accéder à l'éditeur"
 
-#: nuntius/admin/panels.py:277
+#: admin/panels.py:282
 msgid "Preview result"
 msgstr "Aperçu du résultat"
 
-#: nuntius/admin/panels.py:283
+#: admin/panels.py:288
 msgid "HTML content"
 msgstr "Contenu HTML"
 
-#: nuntius/admin/panels.py:388
+#: admin/panels.py:393 admin/push_panels.py:154
 msgid "Tracking"
 msgstr "Suivi"
 
-#: nuntius/admin/panels.py:392
+#: admin/panels.py:397 admin/push_panels.py:158
 msgid "Opened"
 msgstr "Ouvert"
 
-#: nuntius/admin/panels.py:392
+#: admin/panels.py:397 admin/push_panels.py:158
 msgid "Clicked"
 msgstr "Cliqué"
 
-#: nuntius/admin/panels.py:434 nuntius/models.py:287
+#: admin/panels.py:439 admin/push_panels.py:200 models/email_campaigns.py:167
+#: models/push_campaigns.py:82
 msgid "Subscriber"
 msgstr "Abonné⋅e"
 
-#: nuntius/admin/panels.py:448 nuntius/models.py:188 nuntius/models.py:293
+#: admin/panels.py:453 admin/push_panels.py:214 models/email_campaigns.py:173
 msgid "Campaign"
 msgstr "Campagne"
 
-#: nuntius/admin/panels.py:451 nuntius/models.py:326
+#: admin/panels.py:456 admin/push_panels.py:217
 msgid "Sent events"
 msgstr "Évènements d'envoi"
 
-#: nuntius/admin/panels.py:467
+#: admin/panels.py:472 admin/push_panels.py:233
 #, python-format
 msgid "Sent event for campaign %(campaign)s and subscriber %(subscriber)s"
-msgstr ""
-"Évènements d'envoi pour la campagne %(campaign)s et l'abonné⋅e %(subscriber)s"
+msgstr "Évènements d'envoi pour la campagne %(campaign)s et l'abonné⋅e %(subscriber)s"
 
-#: nuntius/admin/panels.py:471
+#: admin/panels.py:476 admin/push_panels.py:237
 #, python-format
 msgid "Sent events for campaign %s"
 msgstr "Évènements d'envoi pour la campagne %s"
 
-#: nuntius/admin/panels.py:481
-#, fuzzy, python-format
+#: admin/panels.py:486 admin/push_panels.py:249
+#, python-format
 msgid "Sent events for subscriber %s"
 msgstr "Évènements d'envoi pour l'abonné⋅e %s"
 
-#: nuntius/app_settings.py:21
+#: admin/push_panels.py:20
+msgid "Notification"
+msgstr "Notification"
+
+#: admin/push_panels.py:96
+msgid "OK"
+msgstr "OK"
+
+#: admin/push_panels.py:101
+msgid "KO"
+msgstr "KO"
+
+#: app_settings.py:26
 msgid "Default template"
 msgstr "Modèle par défaut"
 
-#: nuntius/management/commands/nuntius_worker.py:214
+#: management/commands/nuntius_worker.py:223
 #, python-format
 msgid "Error while sending email for campaign %(campaign)s"
 msgstr "Erreur lors de l'envoi de l'email pour la campagne %(campaign)s"
 
-#: nuntius/management/commands/nuntius_worker.py:307
+#: management/commands/nuntius_worker.py:315
+#, python-brace-format
+msgid "Push campaign sent event with id '{push_sent_event_id}' not found"
+msgstr ""
+"Événement d'envoi de notifications push non trouvé (id: "
+"'{push_sent_event_id}')"
+
+#: management/commands/nuntius_worker.py:326
+#, python-brace-format
+msgid "Error while pushing notification for campaign {repr(push_campaign)}"
+msgstr "Erreur lors de l'envoi de l'email pour la campagne {repr(push_campaign)}"
+
+#: management/commands/nuntius_worker.py:502
 #, python-format
 msgid ""
 "STATISTICS\n"
@@ -164,31 +190,31 @@ msgstr ""
 "Capacité actuelle du Token Bucket: %(bucket_capacity)s\n"
 "Débit d'envoi actuelle: %(sending_rate)s"
 
-#: nuntius/management/commands/nuntius_worker.py:400
+#: management/commands/nuntius_worker.py:613
 #, python-format
-msgid "Started sender process %(process_pid)s"
-msgstr "Démarré le processus d'envoi %(process_pid)s"
+msgid "Started sender process %(process_pid)s for %(campaign_type)s campaigns"
+msgstr "Démarré le processus d'envoi: %(process_pid)s pour le type: %(campaign_type)s"
 
-#: nuntius/management/commands/nuntius_worker.py:417
+#: management/commands/nuntius_worker.py:630
 #, python-format
 msgid "Stopping campaign manager n°%(campaign_id)s (%(campaign_name)s)..."
 msgstr ""
 "Stoppé le processus gestionnaire de campagne n°%(campaign_id)s "
 "(%(campaign_name)s)..."
 
-#: nuntius/management/commands/nuntius_worker.py:444
+#: management/commands/nuntius_worker.py:657
 #, python-format
 msgid "Started campaign manager %(process_pid)s for %(campaign)s"
 msgstr ""
 "Démarré le processus gestionnaire de campagne n°%(process_pid)s "
 "(%(campaign)s)..."
 
-#: nuntius/management/commands/nuntius_worker.py:483
+#: management/commands/nuntius_worker.py:699
 #, python-format
 msgid "Sender process %(process_pid)s unexpectedly quit..."
 msgstr "Le processus d'envoi %(process_pid)s a quitté de façon inattendue..."
 
-#: nuntius/management/commands/nuntius_worker.py:504
+#: management/commands/nuntius_worker.py:721
 #, python-format
 msgid ""
 "Campaign manager %(pid)s correctly stopped... Was taking care of "
@@ -197,7 +223,7 @@ msgstr ""
 "Le processus gestionnaire de campagne %(pid)s s'est correctement arrêté... "
 "Il prenait en charge la campagne %(campaign)s."
 
-#: nuntius/management/commands/nuntius_worker.py:511
+#: management/commands/nuntius_worker.py:729
 #, python-format
 msgid ""
 "Campaign manager %(pid)s abruptly stops. Was taking care of %(campaign)s."
@@ -205,7 +231,7 @@ msgstr ""
 "Le processus gestionnaire de campagne %(pid)s s'est arrêté de manière "
 "inopinée. Il prenait en charge la %(campaign)s."
 
-#: nuntius/management/commands/nuntius_worker.py:523
+#: management/commands/nuntius_worker.py:744
 #, python-format
 msgid ""
 "Unexpected error while trying to send message from campaign "
@@ -214,140 +240,205 @@ msgstr ""
 "Erreur inattendue en envoyant un message pour la camapgne "
 "%(campaign_id)s...\n"
 
-#: nuntius/management/commands/nuntius_worker.py:536
+#: management/commands/nuntius_worker.py:759
 msgid "Asked to quit, asking all subprocesses to exit..."
 msgstr "Arrêt demandé, arrêt de tous les sous-processus en cours..."
 
-#: nuntius/management/commands/nuntius_worker.py:541
+#: management/commands/nuntius_worker.py:764
 msgid "Waiting for all subprocesses to gracefully exit..."
 msgstr "En attente de l'arrêt de tous les sous-processus..."
 
-#: nuntius/management/commands/nuntius_worker.py:549
+#: management/commands/nuntius_worker.py:773
 msgid "All subprocesses have exited!"
 msgstr "Tous les sous-processus se sont arrêtés !"
 
-#: nuntius/models.py:26
-msgid "Waiting"
-msgstr "En attente"
-
-#: nuntius/models.py:27 nuntius/models.py:271
-msgid "Sending"
-msgstr "Envoi en cours"
-
-#: nuntius/models.py:28 nuntius/models.py:274
-msgid "Sent"
-msgstr "Envoyé"
-
-#: nuntius/models.py:29 nuntius/models.py:279
-msgid "Error"
-msgstr "Erreur"
-
-#: nuntius/models.py:32
-msgid "Name (invisible to subscribers)"
-msgstr "Nom (invisible pour les abonné⋅e⋅s)"
-
-#: nuntius/models.py:33
-msgid "Created"
-msgstr "Création"
-
-#: nuntius/models.py:34
-msgid "Updated"
-msgstr "Mise à jour"
-
-#: nuntius/models.py:35
-msgid "First sent"
-msgstr "Premier envoi"
-
-#: nuntius/models.py:37
+#: models/email_campaigns.py:20
 msgid "\"From\" name"
 msgstr "Nom pour le champ \"De\""
 
-#: nuntius/models.py:38
+#: models/email_campaigns.py:21
 msgid "\"From\" email address"
 msgstr "Email pour le champ \"De\""
 
-#: nuntius/models.py:40
+#: models/email_campaigns.py:23
 msgid "\"Reply to\" name"
 msgstr "Nom pour le champ \"Répondre à\""
 
-#: nuntius/models.py:43
+#: models/email_campaigns.py:26
 msgid "\"Reply to\" email address"
 msgstr "Email pour le champ \"Répondre à\""
 
-#: nuntius/models.py:46
+#: models/email_campaigns.py:29
 msgid "Message subject line"
 msgstr "Objet du message"
 
-#: nuntius/models.py:48
+#: models/email_campaigns.py:31
 msgid "Mosaico data"
 msgstr "Données mosaico"
 
-#: nuntius/models.py:49
+#: models/email_campaigns.py:32
 msgid "Message content (HTML)"
 msgstr "Contenu du message (HTML)"
 
-#: nuntius/models.py:50
+#: models/email_campaigns.py:33
 msgid "Message content (text)"
 msgstr "Contenu du message (texte)"
 
-#: nuntius/models.py:54
-#, fuzzy
+#: models/email_campaigns.py:135
+msgid "email campaign"
+msgstr "Campagne e-mail"
+
+#: models/email_campaigns.py:136
+msgid "email campaigns"
+msgstr "Campagnes e-mail"
+
+#: models/email_campaigns.py:151 models/mixins.py:19
+#: models/push_campaigns.py:72
+msgid "Sending"
+msgstr "Envoi en cours"
+
+#: models/email_campaigns.py:152 models/push_campaigns.py:71
+msgid "Unknown"
+msgstr "Inconnu"
+
+#: models/email_campaigns.py:153
+msgid "Rejected by server"
+msgstr "Rejeté par le serveur"
+
+#: models/email_campaigns.py:154 models/mixins.py:20
+#: models/push_campaigns.py:73
+msgid "Sent"
+msgstr "Envoyé"
+
+#: models/email_campaigns.py:157 models/subscriber.py:41
+msgid "Unsubscribed"
+msgstr "Désabonné⋅e⋅s"
+
+#: models/email_campaigns.py:158
+msgid "Blocked temporarily"
+msgstr "Bloqué temporairement"
+
+#: models/email_campaigns.py:159 models/mixins.py:21
+#: models/push_campaigns.py:74
+msgid "Error"
+msgstr "Erreur"
+
+#: models/email_campaigns.py:171
+msgid "Email address at sending time"
+msgstr "Adresse email au moment de l'envoi"
+
+#: models/email_campaigns.py:175 models/push_campaigns.py:89
+msgid "Sending time"
+msgstr "Date d'envoi"
+
+#: models/email_campaigns.py:177 models/push_campaigns.py:91
+msgid "Operation result"
+msgstr "Résultat de l'opération"
+
+#: models/email_campaigns.py:183
+msgid "ID given by the sending server"
+msgstr "Identifiant attribué par le serveur d'envoi"
+
+#: models/email_campaigns.py:205
+msgid "email sent event"
+msgstr "Événement d'envoi d'e-mails"
+
+#: models/email_campaigns.py:206
+msgid "email sent events"
+msgstr "Évènements d'envoi d'e-mails"
+
+#: models/mixins.py:18
+msgid "Waiting"
+msgstr "En attente"
+
+#: models/mixins.py:38
+msgid "Name (invisible to subscribers)"
+msgstr "Nom (invisible pour les abonné⋅e⋅s)"
+
+#: models/mixins.py:39
+msgid "Created"
+msgstr "Création"
+
+#: models/mixins.py:40
+msgid "Updated"
+msgstr "Mise à jour"
+
+#: models/mixins.py:41
+msgid "First sent"
+msgstr "Premier envoi"
+
+#: models/mixins.py:45
 #| msgid "Subscribers"
 msgid "Subscriber segment"
 msgstr "Segment destinataire"
 
-#: nuntius/models.py:62
-#, fuzzy
-#| msgid "Name (invisible to subscribers)"
-msgid "UTM name (visible to subscribers)"
-msgstr "Nom UTM (visible pour les abonné⋅e⋅s)"
+#: models/mixins.py:50
+#| msgid "Campaigns"
+msgid "Campaign start date"
+msgstr "Date de début d'envoi"
 
-#: nuntius/models.py:66
+#: models/mixins.py:53
+msgid "Campaign end date"
+msgstr "Date limite d'envoi"
+
+#: models/mixins.py:62
+msgid "UTM name (visible to subscribers)"
+msgstr "Paramètres utm_name (visible pour les abonné⋅e⋅s)"
+
+#: models/mixins.py:66
 msgid "Value used as utm_campaign parameter, used by various analytics tools."
 msgstr ""
 "Valeur du paramètre utm_campaign, utilisé par les outils de mesure "
 "d'audience de site web."
 
-#: nuntius/models.py:189
-msgid "Campaigns"
-msgstr "Campagnes"
+#: models/mixins.py:93
+msgid "Abstract campaign"
+msgstr "Campagne générique"
 
-#: nuntius/models.py:225
+#: models/mixins.py:94
+msgid "Abstract campaigns"
+msgstr "Campagnes génériques"
+
+#: models/push_campaigns.py:12
+msgid "Notification title"
+msgstr "Titre de la notification"
+
+#: models/push_campaigns.py:13
+msgid "Notification URL"
+msgstr "URL de la notification"
+
+#: models/push_campaigns.py:14
+msgid "Notification body"
+msgstr "Texte de la notification"
+
+#: models/push_campaigns.py:16
+msgid "Notification tag"
+msgstr "Catégorie de la notification"
+
+#: models/push_campaigns.py:19
+msgid "Notification icon"
+msgstr "URL de l'icône de la notification"
+
+#: models/push_campaigns.py:60
+msgid "push campaign"
+msgstr "campagne de notifications push"
+
+#: models/push_campaigns.py:61
+msgid "push campaigns"
+msgstr "campagnes de notifications push"
+
+#: models/push_campaigns.py:87
+msgid "Push campaign"
+msgstr "Campagne de notification push"
+
+#: models/push_campaigns.py:115
+msgid "push sent event"
+msgstr "Événement d'envoi de notifications"
+
+#: models/push_campaigns.py:116
+msgid "push sent events"
+msgstr "Évènements d'envoi de notifications"
+
+#: models/subscriber.py:40
 msgid "Subscribed"
 msgstr "Abonné⋅e"
-
-#: nuntius/models.py:226 nuntius/models.py:277
-msgid "Unsubscribed"
-msgstr "Désabonné⋅e⋅s"
-
-#: nuntius/models.py:272
-msgid "Unknown"
-msgstr "Inconnu"
-
-#: nuntius/models.py:273
-msgid "Rejected by server"
-msgstr "Rejeté par le serveur"
-
-#: nuntius/models.py:278
-msgid "Blocked temporarily"
-msgstr "Bloqué temporairement"
-
-#: nuntius/models.py:291
-msgid "Email address at sending time"
-msgstr "Adresse email au moment de l'envoi"
-
-#: nuntius/models.py:295
-msgid "Sending time"
-msgstr "Date d'envoi"
-
-#: nuntius/models.py:297
-msgid "Operation result"
-msgstr "Résultat de l'opération"
-
-#: nuntius/models.py:303
-msgid "ID given by the sending server"
-msgstr "Identifiant attribué par le serveur d'envoi"
-
-#: nuntius/models.py:325
-msgid "Sent event"
-msgstr "Événement d'envoi"

@@ -588,7 +588,7 @@ Current sending rate: %(sending_rate)s"""
 
         for i in range(app_settings.MAX_CONCURRENT_SENDERS - len(sender_processes)):
             if i == 0:
-                logger.info(_(f"\n{campaign_type.upper()}:"))
+                logger.info(f"\n{campaign_type.upper()}:")
             recv_conn, send_conn = mp.Pipe(duplex=False)
             process = mp.Process(
                 target=CAMPAIGN_TYPE[campaign_type]["sender_process"],
