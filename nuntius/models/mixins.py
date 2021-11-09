@@ -24,7 +24,12 @@ class CampaignStatusType:
 
 class AbstractCampaignQuerySet(models.QuerySet):
     def outbox(self):
-        return self.filter(status__lt=CampaignStatusType.STATUS_SENT)
+        now = timezone.now()
+        return (
+            self.filter(status__lt=CampaignStatusType.STATUS_SENT)
+            .exclude(start_date__isnull=False, start_date__gt=now)
+            .exclude(end_date__isnull=False, end_date__lt=now)
+        )
 
 
 class AbstractCampaign(CampaignStatusType, models.Model):
@@ -40,6 +45,12 @@ class AbstractCampaign(CampaignStatusType, models.Model):
         verbose_name=_("Subscriber segment"),
         on_delete=models.SET_NULL,
         null=True,
+    )
+    start_date = models.DateTimeField(
+        verbose_name=_("Campaign start date"), null=True, blank=True
+    )
+    end_date = models.DateTimeField(
+        verbose_name=_("Campaign end date"), null=True, blank=True
     )
 
     status = fields.IntegerField(

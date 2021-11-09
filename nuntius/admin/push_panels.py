@@ -32,6 +32,8 @@ class PushCampaignAdmin(admin.ModelAdmin):
             _("Sending details"),
             {
                 "fields": (
+                    "start_date",
+                    "end_date",
                     "first_sent",
                     "segment",
                     "segment_subscribers",
@@ -48,6 +50,8 @@ class PushCampaignAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "notification_title",
+        "start_date",
+        "end_date",
         "segment",
         "status",
         "send_button",

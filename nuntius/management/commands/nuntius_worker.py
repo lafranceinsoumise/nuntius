@@ -12,6 +12,7 @@ from django.core.mail import EmailMessage
 from django.core.management import BaseCommand
 from django.db import connection
 from django.db.models import Exists, OuterRef
+from django.utils import timezone
 from django.utils.translation import gettext as _, gettext_lazy
 from tenacity import (
     retry,
@@ -462,6 +463,8 @@ def push_campaign_manager_process(
     # everything has been scheduled for sending:
     if campaign_finished:
         campaign.status = Campaign.STATUS_SENT
+        if campaign.first_sent is None:
+            campaign.first_sent = timezone.now()
         campaign.save()
 
 
