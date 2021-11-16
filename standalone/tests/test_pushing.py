@@ -1,11 +1,9 @@
 import multiprocessing
 import uuid
 from queue import Queue, Empty
-from time import sleep
 from unittest.mock import patch, Mock
 
 from django.test import TestCase
-from push_notifications.models import APNSDevice, GCMDevice
 
 from nuntius.management.commands import nuntius_worker
 from nuntius.models import PushCampaign, BaseSubscriber
@@ -121,96 +119,105 @@ class NotificationContentTestCase(TestCase):
         self.assertEqual(subscriber_count, len(notifications))
 
 
-class PushingTestCase(TestCase):
-    fixtures = ["subscribers.json"]
+try:
+    from push_notifications.models import APNSDevice, GCMDevice
+except ImportError:
+    pass
+else:
 
-    def setUp(self) -> None:
-        self.subscriber = Subscriber.objects.create(
-            email="subscriber@nunti.us", subscriber_status=Subscriber.STATUS_SUBSCRIBED
-        )
-        self.segment = Segment.objects.create(id="push_segment")
-        self.subscriber.segments.add(self.segment)
-        self.subscriber.save()
-        self.apns_device = APNSDevice.objects.create(
-            name="",
-            active=True,
-            device_id=uuid.uuid4(),
-            registration_id=self.subscriber.email,
-        )
-        self.gcm_device = GCMDevice.objects.create(
-            name="",
-            active=True,
-            device_id=hex(self.subscriber.id),
-            registration_id=self.subscriber.email,
-        )
+    class PushingTestCase(TestCase):
+        fixtures = ["subscribers.json"]
 
-    def test_segments(self):
-        self.assertEqual(self.segment.get_subscribers_queryset().count(), 1)
+        def setUp(self) -> None:
+            self.subscriber = Subscriber.objects.create(
+                email="subscriber@nunti.us",
+                subscriber_status=Subscriber.STATUS_SUBSCRIBED,
+            )
+            self.segment = Segment.objects.create(id="push_segment")
+            self.subscriber.segments.add(self.segment)
+            self.subscriber.save()
+            self.apns_device = APNSDevice.objects.create(
+                name="",
+                active=True,
+                device_id=uuid.uuid4(),
+                registration_id=self.subscriber.email,
+            )
+            self.gcm_device = GCMDevice.objects.create(
+                name="",
+                active=True,
+                device_id=hex(self.subscriber.id),
+                registration_id=self.subscriber.email,
+            )
 
-    def test_devices(self):
-        devices = self.subscriber.get_subscriber_push_devices()
-        self.assertEqual(len(devices), 2)
-        self.assertIn(self.apns_device, devices)
-        self.assertIn(self.gcm_device, devices)
+        def test_segments(self):
+            self.assertEqual(self.segment.get_subscribers_queryset().count(), 1)
 
-    @patch("nuntius.utils.notifications.push_gcm_notification", side_effect=Mock())
-    @patch("nuntius.utils.notifications.push_apns_notification", side_effect=Mock())
-    def test_push_notifications(self, apns_push, gcm_push):
-        campaign = PushCampaign.objects.create(
-            notification_title="Notification",
-            notification_url="https://nunti.us",
-            notification_body="Hey, something happened!",
-            utm_name="push_campaign",
-            segment=self.segment,
-        )
-        subscribers = self.segment.get_subscribers_queryset()
-        events = [campaign.get_event_for_subscriber(s) for s in subscribers]
-        notifications = [notification_for_event(e) for e in events]
+        def test_devices(self):
+            devices = self.subscriber.get_subscriber_push_devices()
+            self.assertEqual(len(devices), 2)
+            self.assertIn(self.apns_device, devices)
+            self.assertIn(self.gcm_device, devices)
 
-        apns_push.assert_not_called()
-        gcm_push.assert_not_called()
+        @patch("nuntius.utils.notifications.push_gcm_notification", side_effect=Mock())
+        @patch("nuntius.utils.notifications.push_apns_notification", side_effect=Mock())
+        def test_push_notifications(self, apns_push, gcm_push):
+            campaign = PushCampaign.objects.create(
+                notification_title="Notification",
+                notification_url="https://nunti.us",
+                notification_body="Hey, something happened!",
+                utm_name="push_campaign",
+                segment=self.segment,
+            )
+            subscribers = self.segment.get_subscribers_queryset()
+            events = [campaign.get_event_for_subscriber(s) for s in subscribers]
+            notifications = [notification_for_event(e) for e in events]
 
-        run_sender_process_sync(zip(notifications, (e.id for e in events)))
+            apns_push.assert_not_called()
+            gcm_push.assert_not_called()
 
-        apns_push.assert_called_once_with(
-            self.apns_device, notifications[0], campaign.id
-        )
-        gcm_push.assert_called_once_with(self.gcm_device, notifications[0], campaign.id)
+            run_sender_process_sync(zip(notifications, (e.id for e in events)))
 
-        self.assertEqual(len(events), campaign.get_sent_count())
+            apns_push.assert_called_once_with(
+                self.apns_device, notifications[0], campaign.id
+            )
+            gcm_push.assert_called_once_with(
+                self.gcm_device, notifications[0], campaign.id
+            )
 
-    @patch("nuntius.utils.notifications.push_gcm_notification", side_effect=Mock())
-    @patch("nuntius.utils.notifications.push_apns_notification", side_effect=Mock())
-    def test_send_only_once(self, apns_push, gcm_push):
-        campaign = PushCampaign.objects.create(
-            notification_title="Notification",
-            notification_url="https://nunti.us",
-            notification_body="Hey, something happened!",
-            utm_name="push_campaign",
-            segment=self.segment,
-        )
-        notification_events_tuple = run_campaign_manager_process_sync(campaign)
+            self.assertEqual(len(events), campaign.get_sent_count())
 
-        apns_push.assert_not_called()
-        gcm_push.assert_not_called()
+        @patch("nuntius.utils.notifications.push_gcm_notification", side_effect=Mock())
+        @patch("nuntius.utils.notifications.push_apns_notification", side_effect=Mock())
+        def test_send_only_once(self, apns_push, gcm_push):
+            campaign = PushCampaign.objects.create(
+                notification_title="Notification",
+                notification_url="https://nunti.us",
+                notification_body="Hey, something happened!",
+                utm_name="push_campaign",
+                segment=self.segment,
+            )
+            notification_events_tuple = run_campaign_manager_process_sync(campaign)
 
-        run_sender_process_sync(notification_events_tuple)
+            apns_push.assert_not_called()
+            gcm_push.assert_not_called()
 
-        apns_push.assert_called()
-        gcm_push.assert_called()
+            run_sender_process_sync(notification_events_tuple)
 
-        self.assertEqual(
-            len(notification_events_tuple),
-            self.segment.get_subscribers_queryset().count(),
-        )
-        self.assertEqual(len(notification_events_tuple), campaign.get_sent_count())
+            apns_push.assert_called()
+            gcm_push.assert_called()
 
-        apns_push.reset_mock()
-        gcm_push.reset_mock()
+            self.assertEqual(
+                len(notification_events_tuple),
+                self.segment.get_subscribers_queryset().count(),
+            )
+            self.assertEqual(len(notification_events_tuple), campaign.get_sent_count())
 
-        notification_events_tuple = run_campaign_manager_process_sync(campaign)
+            apns_push.reset_mock()
+            gcm_push.reset_mock()
 
-        apns_push.assert_not_called()
-        gcm_push.assert_not_called()
+            notification_events_tuple = run_campaign_manager_process_sync(campaign)
 
-        self.assertEqual(len(notification_events_tuple), 0)
+            apns_push.assert_not_called()
+            gcm_push.assert_not_called()
+
+            self.assertEqual(len(notification_events_tuple), 0)

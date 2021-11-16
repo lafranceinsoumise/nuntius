@@ -1,7 +1,5 @@
 from django.contrib import admin
 from django.contrib.admin import AdminSite
-from push_notifications.admin import DeviceAdmin
-from push_notifications.models import GCMDevice, WNSDevice, APNSDevice
 
 from nuntius.admin import (
     CampaignAdmin,
@@ -43,8 +41,14 @@ if CAMPAIGN_TYPE_EMAIL in settings.NUNTIUS_ENABLED_CAMPAIGN_TYPES:
     admin_site.register(CampaignSentEvent, CampaignSentEventAdmin)
 
 if CAMPAIGN_TYPE_PUSH in settings.NUNTIUS_ENABLED_CAMPAIGN_TYPES:
-    admin_site.register(PushCampaign, PushCampaignAdmin)
-    admin_site.register(PushCampaignSentEvent, PushCampaignSentEventAdmin)
+    try:
+        from push_notifications.admin import DeviceAdmin
+        from push_notifications.models import GCMDevice, WNSDevice, APNSDevice
 
-    admin_site.register(APNSDevice, DeviceAdmin)
-    admin_site.register(GCMDevice, DeviceAdmin)
+        admin_site.register(PushCampaign, PushCampaignAdmin)
+        admin_site.register(PushCampaignSentEvent, PushCampaignSentEventAdmin)
+
+        admin_site.register(APNSDevice, DeviceAdmin)
+        admin_site.register(GCMDevice, DeviceAdmin)
+    except ImportError:
+        pass

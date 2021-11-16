@@ -14,7 +14,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "nuntius",
-    "push_notifications",
 ]
 
 MIDDLEWARE = [
@@ -102,3 +101,6 @@ EMAIL_HOST = "localhost"
 EMAIL_PORT = "1025"
 
 ANYMAIL_WEBHOOK_SECRET = "test:test"
+
+if "push" in NUNTIUS_ENABLED_CAMPAIGN_TYPES:
+    INSTALLED_APPS.append("push_notifications")

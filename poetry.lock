@@ -3,7 +3,7 @@ name = "apns"
 version = "2.0.1"
 description = "A python library for interacting with the Apple Push Notification Service"
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [[package]]
@@ -11,7 +11,7 @@ name = "apns2"
 version = "0.7.2"
 description = "A python library for interacting with the Apple Push Notification Service via HTTP/2 protocol"
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [package.dependencies]
@@ -95,7 +95,7 @@ name = "certifi"
 version = "2020.12.5"
 description = "Python package for providing Mozilla's CA Bundle."
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [[package]]
@@ -103,7 +103,7 @@ name = "cffi"
 version = "1.15.0"
 description = "Foreign Function Interface for Python calling C code."
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [package.dependencies]
@@ -114,7 +114,7 @@ name = "chardet"
 version = "4.0.0"
 description = "Universal encoding detector for Python 2 and 3"
 category = "main"
-optional = false
+optional = true
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
@@ -141,7 +141,7 @@ name = "cryptography"
 version = "35.0.0"
 description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
 category = "main"
-optional = false
+optional = true
 python-versions = ">=3.6"
 
 [package.dependencies]
@@ -191,7 +191,7 @@ name = "django-push-notifications"
 version = "2.0.0"
 description = "Send push notifications to mobile devices through GCM, APNS or WNS and to WebPush (Chrome, Firefox and Opera) in Django"
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [package.dependencies]
@@ -219,7 +219,7 @@ name = "h2"
 version = "2.6.2"
 description = "HTTP/2 State-Machine based protocol implementation"
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [package.dependencies]
@@ -231,7 +231,7 @@ name = "hpack"
 version = "3.0.0"
 description = "Pure-Python HPACK header compression"
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [[package]]
@@ -247,7 +247,7 @@ name = "http-ece"
 version = "1.1.0"
 description = "Encrypted Content Encoding for HTTP"
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [package.dependencies]
@@ -258,7 +258,7 @@ name = "hyper"
 version = "0.7.0"
 description = "HTTP/2 Client for Python"
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [package.dependencies]
@@ -273,7 +273,7 @@ name = "hyperframe"
 version = "3.2.0"
 description = "HTTP/2 framing layer for Python"
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [[package]]
@@ -281,7 +281,7 @@ name = "idna"
 version = "2.10"
 description = "Internationalized Domain Names in Applications (IDNA)"
 category = "main"
-optional = false
+optional = true
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
@@ -313,7 +313,7 @@ name = "py-vapid"
 version = "1.8.2"
 description = "Simple VAPID header generation library"
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [package.dependencies]
@@ -324,7 +324,7 @@ name = "pycparser"
 version = "2.21"
 description = "C parser in Python"
 category = "main"
-optional = false
+optional = true
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
@@ -332,7 +332,7 @@ name = "pyjwt"
 version = "1.7.1"
 description = "JSON Web Token implementation in Python"
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [package.extras]
@@ -364,7 +364,7 @@ name = "pywebpush"
 version = "1.14.0"
 description = "WebPush publication library"
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [package.dependencies]
@@ -379,7 +379,7 @@ name = "requests"
 version = "2.25.1"
 description = "Python HTTP for Humans."
 category = "main"
-optional = false
+optional = true
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [package.dependencies]
@@ -462,7 +462,7 @@ name = "urllib3"
 version = "1.26.4"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 category = "main"
-optional = false
+optional = true
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
 
 [package.extras]
@@ -473,11 +473,12 @@ brotli = ["brotlipy (>=0.6.0)"]
 [extras]
 anymail = ["django-anymail", "boto3"]
 mysql = ["mysqlclient"]
+push = ["django-push-notifications", "apns", "pywebpush"]
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "ecc420870a6ea69b5f4fe058a1084a2e44747882040a419a438b6a27dcb6a044"
+content-hash = "b55d67bc74386672c4d40705cb4576f79419d9570f7a189bfad4f0d7187472d1"
 
 [metadata.files]
 apns = [

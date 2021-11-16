@@ -1,12 +1,11 @@
-import logging
 import uuid
 from itertools import islice
-from uuid import UUID
 
+from django.conf import settings
 from django.core.management import BaseCommand
-from push_notifications.models import APNSDevice, GCMDevice
 from tqdm import tqdm
 
+from nuntius import app_settings
 from nuntius.models import BaseSubscriber
 from standalone.models import Subscriber, Segment
 
@@ -80,48 +79,54 @@ class Command(BaseCommand):
                 Relation.objects.bulk_create(batch, batch_size)
                 progress_bar.update(batch_size)
 
-        self.stdout.write(
-            f"Creating {quantity} APNS devices with batch size {batch_size}."
-        )
-        APNSDevice.objects.filter(
-            registration_id__in=subscribers.values_list("email", flat=True)
-        )
-        objs = (
-            APNSDevice(
-                name="",
-                active=True,
-                device_id=uuid.uuid4(),
-                registration_id=subscriber.email,
-            )
-            for subscriber in subscribers.all()
-        )
-        with tqdm(total=quantity) as progress_bar:
-            while True:
-                batch = list(islice(objs, batch_size))
-                if not batch:
-                    break
-                APNSDevice.objects.bulk_create(batch, batch_size)
-                progress_bar.update(batch_size)
+        if app_settings.CAMPAIGN_TYPE_PUSH in settings.NUNTIUS_ENABLED_CAMPAIGN_TYPES:
+            try:
+                from push_notifications.models import APNSDevice, GCMDevice
+            except ImportError:
+                pass
+            else:
+                self.stdout.write(
+                    f"Creating {quantity} APNS devices with batch size {batch_size}."
+                )
+                APNSDevice.objects.filter(
+                    registration_id__in=subscribers.values_list("email", flat=True)
+                )
+                objs = (
+                    APNSDevice(
+                        name="",
+                        active=True,
+                        device_id=uuid.uuid4(),
+                        registration_id=subscriber.email,
+                    )
+                    for subscriber in subscribers.all()
+                )
+                with tqdm(total=quantity) as progress_bar:
+                    while True:
+                        batch = list(islice(objs, batch_size))
+                        if not batch:
+                            break
+                        APNSDevice.objects.bulk_create(batch, batch_size)
+                        progress_bar.update(batch_size)
 
-        self.stdout.write(
-            f"Creating {quantity} GCM devices with batch size {batch_size}."
-        )
-        GCMDevice.objects.filter(
-            registration_id__in=subscribers.values_list("email", flat=True)
-        )
-        objs = (
-            GCMDevice(
-                name="",
-                active=True,
-                device_id=hex(subscriber.id),
-                registration_id=subscriber.email,
-            )
-            for subscriber in subscribers.all()
-        )
-        with tqdm(total=quantity) as progress_bar:
-            while True:
-                batch = list(islice(objs, batch_size))
-                if not batch:
-                    break
-                GCMDevice.objects.bulk_create(batch, batch_size)
-                progress_bar.update(batch_size)
+                self.stdout.write(
+                    f"Creating {quantity} GCM devices with batch size {batch_size}."
+                )
+                GCMDevice.objects.filter(
+                    registration_id__in=subscribers.values_list("email", flat=True)
+                )
+                objs = (
+                    GCMDevice(
+                        name="",
+                        active=True,
+                        device_id=hex(subscriber.id),
+                        registration_id=subscriber.email,
+                    )
+                    for subscriber in subscribers.all()
+                )
+                with tqdm(total=quantity) as progress_bar:
+                    while True:
+                        batch = list(islice(objs, batch_size))
+                        if not batch:
+                            break
+                        GCMDevice.objects.bulk_create(batch, batch_size)
+                        progress_bar.update(batch_size)

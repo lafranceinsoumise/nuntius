@@ -1,8 +1,6 @@
 from urllib.parse import quote as url_quote
 
 from django.urls import reverse
-from push_notifications.apns import APNSServerError
-from push_notifications.models import APNSDevice, GCMDevice
 
 from nuntius import app_settings
 from nuntius.models import PushCampaignSentStatusType
@@ -11,11 +9,7 @@ from nuntius.utils.messages import sign_url, extend_query
 
 def make_tracking_url(url, campaign, tracking_id):
     url = extend_query(
-        url,
-        defaults={
-            "utm_content": "push_campaign",
-            "utm_term": getattr(campaign.segment, "utm_term", ""),
-        },
+        url, defaults={"utm_term": getattr(campaign.segment, "utm_term", "")}
     )
 
     relative_url = reverse(
@@ -57,16 +51,21 @@ def notification_for_event(sent_event):
 
 def push_apns_notification(device, notification, thread_id):
     try:
-        device.send_message(
-            message=notification,
-            thread_id=thread_id,
-            extra={"url": notification["url"]},
-        )
-    except APNSServerError as e:
-        if "Unregistered" in str(e):
-            device.active = False
-            device.save()
+        from push_notifications.apns import APNSServerError
+    except ImportError as e:
         raise e
+    else:
+        try:
+            device.send_message(
+                message=notification,
+                thread_id=thread_id,
+                extra={"url": notification["url"]},
+            )
+        except APNSServerError as e:
+            if "Unregistered" in str(e):
+                device.active = False
+                device.save()
+            raise e
 
 
 def push_gcm_notification(device, notification, thread_id):
@@ -74,25 +73,32 @@ def push_gcm_notification(device, notification, thread_id):
 
 
 def push_notification(notification, push_sent_event):
-    push_sent_event.result = PushCampaignSentStatusType.PENDING
-
-    pushed_count = 0
-    for device in push_sent_event.devices:
-        try:
-            if isinstance(device, APNSDevice):
-                push_apns_notification(
-                    device, notification, push_sent_event.campaign.id
-                )
-            if isinstance(device, GCMDevice):
-                push_gcm_notification(device, notification, push_sent_event.campaign.id)
-        except Exception:
-            pass
-        else:
-            pushed_count += 1
-
-    if pushed_count > 0:
-        push_sent_event.result = PushCampaignSentStatusType.OK
-    else:
+    try:
+        from push_notifications.models import APNSDevice, GCMDevice
+    except ImportError:
         push_sent_event.result = PushCampaignSentStatusType.ERROR
+    else:
+        push_sent_event.result = PushCampaignSentStatusType.PENDING
+
+        pushed_count = 0
+        for device in push_sent_event.devices:
+            try:
+                if isinstance(device, APNSDevice):
+                    push_apns_notification(
+                        device, notification, push_sent_event.campaign.id
+                    )
+                if isinstance(device, GCMDevice):
+                    push_gcm_notification(
+                        device, notification, push_sent_event.campaign.id
+                    )
+            except Exception:
+                pass
+            else:
+                pushed_count += 1
+
+        if pushed_count > 0:
+            push_sent_event.result = PushCampaignSentStatusType.OK
+        else:
+            push_sent_event.result = PushCampaignSentStatusType.ERROR
 
     push_sent_event.save()
