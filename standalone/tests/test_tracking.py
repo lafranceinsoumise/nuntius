@@ -297,7 +297,7 @@ class TrackingTestCase(TestCase):
         event = campaign.get_event_for_subscriber(subscriber)
         notification = notification_for_event(event)
         tracking_id = event.tracking_id
-        encoded_tracking_query = "?utm_content=push_campaign&utm_term="
+        encoded_tracking_query = "?utm_term="
 
         tracking_url = LINKS_URL + reverse(
             "nuntius_track_push_click",
@@ -316,7 +316,7 @@ class TrackingTestCase(TestCase):
         self.assertRedirects(
             res,
             EXTERNAL_LINK
-            + "?utm_campaign=tracked_campaign&utm_content=push_campaign&utm_source=nuntius&utm_medium=push",
+            + "?utm_campaign=tracked_campaign&utm_source=nuntius&utm_medium=push",
             fetch_redirect_response=False,
         )
         self.assertEqual(

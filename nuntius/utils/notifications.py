@@ -7,6 +7,17 @@ from nuntius.models import PushCampaignSentStatusType
 from nuntius.utils.messages import sign_url, extend_query
 
 
+def get_pushing_error_classes():
+    try:
+        from push_notifications import apns, gcm
+    except ImportError:
+        classes = tuple()
+    else:
+        classes = (gcm.GCMError, apns.APNSError)
+
+    return classes
+
+
 def make_tracking_url(url, campaign, tracking_id):
     url = extend_query(
         url, defaults={"utm_term": getattr(campaign.segment, "utm_term", "")}

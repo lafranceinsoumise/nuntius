@@ -34,7 +34,11 @@ from nuntius.models import (
     PushCampaignSentStatusType,
     AbstractSubscriber,
 )
-from nuntius.utils.notifications import notification_for_event, push_notification
+from nuntius.utils.notifications import (
+    notification_for_event,
+    push_notification,
+    get_pushing_error_classes,
+)
 from nuntius.utils.processes import (
     gracefully_exit,
     print_stack_trace,
@@ -144,6 +148,40 @@ class ConnectionManager:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._connection.close()
+
+
+class PushManager:
+    """
+    Manager around the push notification sending that handles retrying
+    """
+
+    def __init__(self, quit_event):
+        self._quit_event = quit_event
+
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_random_exponential(),
+        retry=retry_if_exception_type(get_pushing_error_classes()),
+    )
+    def push(self, notification, push_sent_event):
+        """
+        Send a push notification and retry in cases of failures.
+
+        This function will try sending up to 5 times, and uses an exponential
+        backoff strategy, where a random waiting time is chosen between 0 and a max
+        value that doubles every retry, to avoid all sender processes retrying at the
+        same time.
+        """
+        if self._quit_event.is_set():
+            raise GracefulExit()
+
+        push_notification(notification, push_sent_event)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
 
 @reset_sigmask
@@ -291,45 +329,48 @@ def pusher_process(
     push_sent_event_id: int
 
     try:
-        while True:
-            # the timeout allows the loop to start again every few seconds so that the
-            # quit_event is checked and the process can quit if it has to.
-            notification, push_sent_event_id = get_from_queue_or_quit(
-                queue, event=quit_event, polling_period=app_settings.POLLING_INTERVAL
-            )
+        with PushManager(quit_event) as push_manager:
+            while True:
+                # the timeout allows the loop to start again every few seconds so that the
+                # quit_event is checked and the process can quit if it has to.
+                notification, push_sent_event_id = get_from_queue_or_quit(
+                    queue,
+                    event=quit_event,
+                    polling_period=app_settings.POLLING_INTERVAL,
+                )
 
-            # rate limit just before sending
-            if rate_limiter:
-                rate_limiter.take()
+                # rate limit just before sending
+                if rate_limiter:
+                    rate_limiter.take()
 
-            try:
-                push_sent_event = PushCampaignSentEvent.objects.get(
-                    id=push_sent_event_id
-                )
-                push_notification(notification, push_sent_event)
-            except GracefulExit:
-                raise
-            except PushCampaignSentEvent.DoesNotExist:
-                logger.error(
-                    _(
-                        f"Push campaign sent event with id '{push_sent_event_id}' not found"
-                    ),
-                    exc_info=True,
-                )
-            except Exception:
-                push_campaign = PushCampaign.objects.get(
-                    pushcampaignsentevent__id=push_sent_event_id
-                )
-                error_channel.send(push_campaign.id)
-                logger.error(
-                    _(
-                        f"Error while pushing notification for campaign {repr(push_campaign)}"
-                    ),
-                    exc_info=True,
-                )
-            else:
-                if rate_meter:
-                    rate_meter.count_up()
+                try:
+                    push_sent_event = PushCampaignSentEvent.objects.get(
+                        id=push_sent_event_id
+                    )
+                    push_manager.push(notification, push_sent_event)
+                except GracefulExit:
+                    raise
+                except PushCampaignSentEvent.DoesNotExist:
+                    logger.error(
+                        _(
+                            f"Push campaign sent event with id '{push_sent_event_id}' not found"
+                        ),
+                        exc_info=True,
+                    )
+                except Exception:
+                    push_campaign = PushCampaign.objects.get(
+                        pushcampaignsentevent__id=push_sent_event_id
+                    )
+                    error_channel.send(push_campaign.id)
+                    logger.error(
+                        _(
+                            f"Error while pushing notification for campaign {repr(push_campaign)}"
+                        ),
+                        exc_info=True,
+                    )
+                else:
+                    if rate_meter:
+                        rate_meter.count_up()
 
     except GracefulExit:
         return
