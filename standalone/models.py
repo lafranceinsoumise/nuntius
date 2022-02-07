@@ -26,6 +26,24 @@ class Segment(BaseSegment, models.Model):
 class Subscriber(BaseSubscriber):
     segments = models.ManyToManyField("standalone.Segment")
 
+    def get_subscriber_push_devices(self):
+        try:
+            from push_notifications.models import APNSDevice, GCMDevice
+
+            return [
+                device
+                for device in APNSDevice.objects.filter(
+                    registration_id=self.email, active=True
+                )
+            ] + [
+                device
+                for device in GCMDevice.objects.filter(
+                    registration_id=self.email, active=True
+                )
+            ]
+        except ImportError:
+            return []
+
     def get_subscriber_data(self):
         return {
             "segments": ", ".join(str(s) for s in self.segments.all()),

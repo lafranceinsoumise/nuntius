@@ -4,6 +4,7 @@ import multiprocessing as mp
 import multiprocessing.connection as mpc
 import signal
 import smtplib
+from argparse import ArgumentTypeError
 from typing import Dict, List, Tuple
 
 from django.core import mail
@@ -11,6 +12,8 @@ from django.core.mail import EmailMessage
 from django.core.management import BaseCommand
 from django.db import connection
 from django.db.models import Exists, OuterRef
+from django.utils import timezone
+from django.utils.translation import gettext as _, gettext_lazy
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -18,15 +21,23 @@ from tenacity import (
     wait_random_exponential,
     TryAgain,
 )
-from django.utils.translation import gettext as _, gettext_lazy
 
 from nuntius import app_settings
+from nuntius.app_settings import CAMPAIGN_TYPE_EMAIL, CAMPAIGN_TYPE_PUSH
 from nuntius.messages import message_for_event
 from nuntius.models import (
     Campaign,
     CampaignSentEvent,
     CampaignSentStatusType,
+    PushCampaign,
+    PushCampaignSentEvent,
+    PushCampaignSentStatusType,
     AbstractSubscriber,
+)
+from nuntius.utils.notifications import (
+    notification_for_event,
+    push_notification,
+    get_pushing_error_classes,
 )
 from nuntius.utils.processes import (
     gracefully_exit,
@@ -139,9 +150,43 @@ class ConnectionManager:
         self._connection.close()
 
 
+class PushManager:
+    """
+    Manager around the push notification sending that handles retrying
+    """
+
+    def __init__(self, quit_event):
+        self._quit_event = quit_event
+
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_random_exponential(),
+        retry=retry_if_exception_type(get_pushing_error_classes()),
+    )
+    def push(self, notification, push_sent_event):
+        """
+        Send a push notification and retry in cases of failures.
+
+        This function will try sending up to 5 times, and uses an exponential
+        backoff strategy, where a random waiting time is chosen between 0 and a max
+        value that doubles every retry, to avoid all sender processes retrying at the
+        same time.
+        """
+        if self._quit_event.is_set():
+            raise GracefulExit()
+
+        push_notification(notification, push_sent_event)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+
 @reset_sigmask
 @unexpected_exc_logger
-def sender_process(
+def mailer_process(
     *,
     queue: mp.Queue,
     error_channel: mpc.Connection,
@@ -243,7 +288,97 @@ def sender_process(
 
 @reset_sigmask
 @unexpected_exc_logger
-def campaign_manager_process(
+def pusher_process(
+    *,
+    queue: mp.Queue,
+    error_channel: mpc.Connection,
+    quit_event: mp.Event,
+    rate_limiter: RateLimiter = None,
+    rate_meter: RateMeter = None,
+):
+    """
+    Main function of the processes responsible for sending push notifications.
+
+    This process pulls `(push_notification, event: PushCampaignSentEvent)`
+    tuples from the work queue, tries to send the push and saves the result
+    on the `event`.
+
+    Whenever an unexpected error happens (i.e. which does not seem to be linked
+    to a particular recipient), the process signals the error on the
+    `error_channel` by sending the campaign id.
+
+    It monitors its own connection to the mail service, and resets it every
+    `nuntius.app_settings.MAX_MESSAGES_PER_CONNECTION` messages.
+
+    :param queue: The work queue on which tuples (push_notification, CampaignSentEvent) are received.
+    :type queue: class:`multiprocessing.Queue`
+
+    :param error_channel: channel on which campaign ids of failing campaigns are sent.
+    :type error_channel: class:`multiprocessing.connection.Connection`
+
+    :param quit_event: event that may be used by the main process to signal to senders they need to quit
+    :type quit_event: class:`multiprocessing.Event`
+
+    :param rate_limiter: rate limiter to limit the rate of message sendings.
+    :type rate_limiter: class:`nuntius.utils.processes.RateLimiter`
+
+    :param rate_meter: rate meter to allow measuring the sending speed
+    :type rate_meter: class:`nuntius.utils.processes.RateMeter`
+    """
+    notification: dict
+    push_sent_event_id: int
+
+    try:
+        with PushManager(quit_event) as push_manager:
+            while True:
+                # the timeout allows the loop to start again every few seconds so that the
+                # quit_event is checked and the process can quit if it has to.
+                notification, push_sent_event_id = get_from_queue_or_quit(
+                    queue,
+                    event=quit_event,
+                    polling_period=app_settings.POLLING_INTERVAL,
+                )
+
+                # rate limit just before sending
+                if rate_limiter:
+                    rate_limiter.take()
+
+                try:
+                    push_sent_event = PushCampaignSentEvent.objects.get(
+                        id=push_sent_event_id
+                    )
+                    push_manager.push(notification, push_sent_event)
+                except GracefulExit:
+                    raise
+                except PushCampaignSentEvent.DoesNotExist:
+                    logger.error(
+                        _(
+                            f"Push campaign sent event with id '{push_sent_event_id}' not found"
+                        ),
+                        exc_info=True,
+                    )
+                except Exception:
+                    push_campaign = PushCampaign.objects.get(
+                        pushcampaignsentevent__id=push_sent_event_id
+                    )
+                    error_channel.send(push_campaign.id)
+                    logger.error(
+                        _(
+                            f"Error while pushing notification for campaign {repr(push_campaign)}"
+                        ),
+                        exc_info=True,
+                    )
+                else:
+                    if rate_meter:
+                        rate_meter.count_up()
+
+    except GracefulExit:
+        return
+
+
+@reset_sigmask
+@unexpected_exc_logger
+def email_campaign_manager_process(
     *, campaign: Campaign, queue: mp.Queue, quit_event: mp.Event
 ):
     """
@@ -279,8 +414,8 @@ def campaign_manager_process(
 
         sent_event = campaign.get_event_for_subscriber(subscriber)
 
+        # just in case there is another nuntius_worker started, but this should not happen
         if sent_event.result != CampaignSentStatusType.PENDING:
-            # just in case there is another nuntius_worker started, but this should not happen
             continue
 
         message = message_for_event(sent_event)
@@ -305,6 +440,104 @@ def campaign_manager_process(
         campaign.save()
 
 
+@reset_sigmask
+@unexpected_exc_logger
+def push_campaign_manager_process(
+    *, campaign: PushCampaign, queue: mp.Queue, quit_event: mp.Event
+):
+    """
+    Main function of the process responsible for scheduling the pushing of campaigns
+
+    :param campaign: the campaign for which messages must be pushed
+    :type campaign: :class:`nuntius.models.PushCampaign`
+
+    :param queue: the work queue on which email messages are put
+    :type queue: : class:`multiprocessing.Queue`
+
+    :param quit_event: an event that may be used by the main process to tell the manager it needs to quit
+    :type quit_event: class:`multiprocessing.Event`
+    """
+    queryset = campaign.get_subscribers_queryset()
+    # eliminate people who already received the message
+    queryset = queryset.annotate(
+        already_sent=Exists(
+            PushCampaignSentEvent.objects.filter(
+                subscriber_id=OuterRef("pk"), campaign_id=campaign.id
+            ).exclude(result=PushCampaignSentStatusType.PENDING)
+        )
+    ).filter(already_sent=False)
+
+    campaign_finished = False
+
+    for subscriber in queryset.iterator():
+        if quit_event.is_set():
+            break
+
+        if subscriber.get_subscriber_status() != AbstractSubscriber.STATUS_SUBSCRIBED:
+            continue
+
+        push_sent_event = campaign.get_event_for_subscriber(subscriber)
+
+        if (
+            push_sent_event is None
+            or push_sent_event.result != PushCampaignSentStatusType.PENDING
+        ):
+            # just in case there is another nuntius_worker started, but this should not happen
+            continue
+
+        notification = notification_for_event(push_sent_event)
+
+        try:
+            put_in_queue_or_quit(
+                queue,
+                (notification, push_sent_event.id),
+                event=quit_event,
+                polling_period=app_settings.POLLING_INTERVAL,
+            )
+        except GracefulExit:
+            break
+    else:
+        campaign_finished = True
+
+    queue.close()
+    queue.join_thread()
+    # everything has been scheduled for sending:
+    if campaign_finished:
+        campaign.status = Campaign.STATUS_SENT
+        if campaign.first_sent is None:
+            campaign.first_sent = timezone.now()
+        campaign.save()
+
+
+CAMPAIGN_TYPE = {
+    CAMPAIGN_TYPE_EMAIL: {
+        "CampaignModel": Campaign,
+        "sender_process": mailer_process,
+        "manager_process": email_campaign_manager_process,
+    },
+    CAMPAIGN_TYPE_PUSH: {
+        "CampaignModel": PushCampaign,
+        "sender_process": pusher_process,
+        "manager_process": push_campaign_manager_process,
+    },
+}
+
+
+def campaign_types_argument(campaign_types):
+    if not isinstance(campaign_types, str):
+        raise ArgumentTypeError("The campaign type must be a string")
+
+    campaign_types = campaign_types.lower().split(",")
+
+    for campaign_type in campaign_types:
+        if campaign_type not in CAMPAIGN_TYPE.keys():
+            raise ArgumentTypeError(
+                f"'{campaign_type}': this campaign type does not exist, possible choices are: {', '.join(CAMPAIGN_TYPE.keys())}"
+            )
+
+    return campaign_types
+
+
 class Command(BaseCommand):
     STATS_MESSAGE = gettext_lazy(
         """STATISTICS
@@ -315,7 +548,19 @@ Token bucket current capacity: %(bucket_capacity)s
 Current sending rate: %(sending_rate)s"""
     )
 
-    def handle(self, *args, **options):
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "-t",
+            "--types",
+            dest="campaign_types",
+            default=app_settings.ENABLED_CAMPAIGN_TYPES,
+            type=campaign_types_argument,
+            help="The comma-separated list of campaign types for which to start the workers. "
+            f"Valid choices are: {', '.join(CAMPAIGN_TYPE.keys())}. "
+            "Defaults to: 'email'",
+        )
+
+    def handle(self, *args, campaign_types=None, **options):
         # used by campaign managers processes to queue emails to send
         self.queue = mp.Queue(maxsize=app_settings.MAX_CONCURRENT_SENDERS * 2)
 
@@ -332,7 +577,9 @@ Current sending rate: %(sending_rate)s"""
         self.rate_meter = RateMeter(0.3, 0.5)
 
         # used by the main process to monitor the sender processes
-        self.sender_processes: List[mp.Process] = []
+        self.sender_processes: Dict[str, List[mp.Process]] = {
+            key: [] for key in CAMPAIGN_TYPE.keys()
+        }
 
         # used by sender processes to signal when a campaign failed, so that it can be stopped by the main process
         self.sender_pipes: List[mp.connection.Connection] = []
@@ -341,8 +588,7 @@ Current sending rate: %(sending_rate)s"""
         self.campaign_manager_processes: Dict[int, Tuple[mp.Process, mp.Event]] = {}
 
         self._setup_signals()
-
-        self.run_loop()
+        self.run_loop(campaign_types)
 
     def _setup_signals(self):
         signal.signal(signal.SIGINT, signal.default_int_handler)
@@ -366,7 +612,9 @@ Current sending rate: %(sending_rate)s"""
     def print_stats(self, sig, stack):
         values = {
             "queue_size": self.queue.qsize(),
-            "sender_processes": [p.pid for p in self.sender_processes],
+            "sender_processes": [
+                p.pid for p in sum(self.sender_processes.values(), [])
+            ],
             "campaign_managers": [
                 p.pid for p, _ in self.campaign_manager_processes.values()
             ],
@@ -376,13 +624,15 @@ Current sending rate: %(sending_rate)s"""
 
         self.stderr.write(self.STATS_MESSAGE % values, ending="\n")
 
-    def start_sender_processes(self):
-        for i in range(
-            app_settings.MAX_CONCURRENT_SENDERS - len(self.sender_processes)
-        ):
+    def start_sender_processes(self, campaign_type):
+        sender_processes = self.sender_processes[campaign_type]
+
+        for i in range(app_settings.MAX_CONCURRENT_SENDERS - len(sender_processes)):
+            if i == 0:
+                logger.info(f"\n{campaign_type.upper()}:")
             recv_conn, send_conn = mp.Pipe(duplex=False)
             process = mp.Process(
-                target=sender_process,
+                target=CAMPAIGN_TYPE[campaign_type]["sender_process"],
                 kwargs={
                     "queue": self.queue,
                     "error_channel": send_conn,
@@ -393,25 +643,26 @@ Current sending rate: %(sending_rate)s"""
             )
             process.daemon = True
 
-            self.sender_processes.append(process)
+            sender_processes.append(process)
             self.sender_pipes.append(recv_conn)
             # let's close SQL connection to make sure it is not shared with children
             connection.close()
             with self._setup_signal_handlers_for_children():
                 process.start()
             logger.info(
-                _("Started sender process %(process_pid)s")
-                % {"process_pid": process.pid}
+                _(
+                    "Started sender process %(process_pid)s for %(campaign_type)s campaigns"
+                )
+                % {"process_pid": process.pid, "campaign_type": campaign_type}
             )
 
-    def check_campaigns(self):
-        campaigns = Campaign.objects.filter(
-            status__in=[Campaign.STATUS_WAITING, Campaign.STATUS_SENDING]
-        )
+    def check_campaigns(self, campaign_type):
+        CampaignModel = CAMPAIGN_TYPE[campaign_type]["CampaignModel"]
+        campaigns = CampaignModel.objects.outbox()
 
         for campaign in campaigns:
             if (
-                campaign.status == Campaign.STATUS_WAITING
+                campaign.status == CampaignModel.STATUS_WAITING
                 and campaign.id in self.campaign_manager_processes
             ):
                 # we need to cancel that task
@@ -425,12 +676,12 @@ Current sending rate: %(sending_rate)s"""
                 quit_event.set()
 
             if (
-                campaign.status == Campaign.STATUS_SENDING
+                campaign.status == CampaignModel.STATUS_SENDING
                 and campaign.id not in self.campaign_manager_processes
             ):
                 quit_event = mp.Event()
                 process = mp.Process(
-                    target=campaign_manager_process,
+                    target=CAMPAIGN_TYPE[campaign_type]["manager_process"],
                     kwargs={
                         "campaign": campaign,
                         "queue": self.queue,
@@ -448,8 +699,11 @@ Current sending rate: %(sending_rate)s"""
                     % {"process_pid": process.pid, "campaign": repr(campaign)}
                 )
 
-    def monitor_processes(self):
-        sender_sentinels = [p.sentinel for p in self.sender_processes]
+    def monitor_processes(self, campaign_type):
+        CampaignModel = CAMPAIGN_TYPE[campaign_type]["CampaignModel"]
+        sender_processes = self.sender_processes[campaign_type]
+
+        sender_sentinels = [p.sentinel for p in sender_processes]
         campaign_manager_sentinels = {
             p.sentinel: c_id
             for c_id, (p, _e) in self.campaign_manager_processes.items()
@@ -478,7 +732,7 @@ Current sending rate: %(sending_rate)s"""
 
         # reverse=True is important as we're removing elements from the sender_processes list by index
         for i in sorted(stopped_senders, reverse=True):
-            process = self.sender_processes[i]
+            process = sender_processes[i]
             # let's reap process to avoid zombies
             process.join()
 
@@ -486,7 +740,7 @@ Current sending rate: %(sending_rate)s"""
                 _("Sender process %(process_pid)s unexpectedly quit...")
                 % {"process_pid": process.pid}
             )
-            del self.sender_processes[i]
+            del sender_processes[i]
             del self.sender_pipes[i]
 
         for campaign_id in sorted(stopped_campaign_managers):
@@ -494,32 +748,37 @@ Current sending rate: %(sending_rate)s"""
             pid = process.pid
             # let's reap process to avoid zombies
             process.join()
+
             try:
-                campaign = Campaign.objects.get(id=campaign_id)
-            except Campaign.DoesNotExist:
+                campaign = CampaignModel.objects.get(id=campaign_id)
+            except CampaignModel.DoesNotExist:
                 # the campaign has most likely be deleted
                 campaign = None
 
-            if campaign and campaign.status != campaign.STATUS_SENDING:
+            if campaign and campaign.status != CampaignModel.STATUS_SENDING:
                 # process was asked to stop and did so correctly
                 logger.info(
                     _(
                         "Campaign manager %(pid)s correctly stopped... Was taking care of %(campaign)s."
                     )
-                    % {"pid": pid, "campaign": repr(campaign)}
+                    % {"pid": pid, "campaign": repr(campaign)},
+                    exc_info=True,
                 )
             else:
                 logger.error(
                     _(
                         "Campaign manager %(pid)s abruptly stops. Was taking care of %(campaign)s."
                     )
-                    % {"pid": pid, "campaign": repr(campaign)}
+                    % {"pid": pid, "campaign": repr(campaign)},
+                    exc_info=True,
                 )
 
             del self.campaign_manager_processes[campaign_id]
 
         for campaign_id in campaign_errors:
-            Campaign.objects.filter(id=campaign_id).update(status=Campaign.STATUS_ERROR)
+            CampaignModel.objects.filter(id=campaign_id).update(
+                status=CampaignModel.STATUS_ERROR
+            )
             if campaign_id in self.campaign_manager_processes:
                 logger.error(
                     _(
@@ -529,12 +788,14 @@ Current sending rate: %(sending_rate)s"""
                 )
                 self.campaign_manager_processes[campaign_id][1].set()
 
-    def run_loop(self):
+    def run_loop(self, campaign_types):
         try:
             while True:
-                self.start_sender_processes()
-                self.check_campaigns()
-                self.monitor_processes()
+                for campaign_type in campaign_types:
+                    self.start_sender_processes(campaign_type)
+                    self.check_campaigns(campaign_type)
+                    self.monitor_processes(campaign_type)
+
         except (GracefulExit, KeyboardInterrupt):
             logger.info(_("Asked to quit, asking all subprocesses to exit..."))
             self.senders_quit_event.set()
@@ -544,8 +805,9 @@ Current sending rate: %(sending_rate)s"""
             logger.info(_("Waiting for all subprocesses to gracefully exit..."))
             # active_children joins children so removes zombies
             while mp.active_children():
+                sender_processes = sum(self.sender_processes.values(), [])
                 mpc.wait(
-                    [p.sentinel for p in self.sender_processes]
+                    [p.sentinel for p in sender_processes]
                     + [p.sentinel for p, _e in self.campaign_manager_processes.values()]
                 )
 

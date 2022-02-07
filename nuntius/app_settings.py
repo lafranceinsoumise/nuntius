@@ -2,6 +2,11 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 
+CAMPAIGN_TYPE_EMAIL = "email"
+CAMPAIGN_TYPE_PUSH = "push"
+ENABLED_CAMPAIGN_TYPES = getattr(
+    settings, "NUNTIUS_ENABLED_CAMPAIGN_TYPES", [CAMPAIGN_TYPE_EMAIL]
+)
 
 # Segment and subscribers models
 try:
@@ -55,3 +60,13 @@ MAX_MESSAGES_PER_CONNECTION = getattr(
 
 # Interval of time, in seconds, with which the worker must check for campaign status changes
 POLLING_INTERVAL = getattr(settings, "NUNTIUS_POLLING_INTERVAL", 2)
+
+if CAMPAIGN_TYPE_PUSH in ENABLED_CAMPAIGN_TYPES:
+    try:
+        PUSH_NOTIFICATION_SETTINGS = settings.NUNTIUS_PUSH_NOTIFICATION_SETTINGS
+    except AttributeError:
+        raise ImproperlyConfigured(
+            "Push campaigns have been enabled without specifying a configuration. Either remove push from the list of "
+            "enabled campaign, or add a valid 'django-push-notification' configuration ("
+            "settings.NUNTIUS_PUSH_NOTIFICATION_SETTINGS)."
+        )

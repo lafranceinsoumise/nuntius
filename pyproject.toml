@@ -38,6 +38,9 @@ tenacity = "*"
 django-anymail = { version = "*", optional = true }
 boto3 = { version = "*", optional = true }
 mysqlclient = { version = "*", optional = true }
+django-push-notifications = {version = "^2.0.0", optional = true}
+apns = {version = "^2.0.1", optional = true}
+pywebpush = {version = "^1.14.0", optional = true}
 
 [tool.poetry.dev-dependencies]
 tqdm = "^4.60.0"
@@ -47,6 +50,7 @@ black = "==18.9b0"
 [tool.poetry.extras]
 anymail = ["django-anymail", "boto3"]
 mysql = ["mysqlclient"]
+push = ["django-push-notifications", "apns", "pywebpush"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

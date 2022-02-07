@@ -5,9 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ("nuntius", "0019_add_tracking_index"),
-    ]
+    dependencies = [("nuntius", "0019_add_tracking_index")]
 
     operations = [
         migrations.AlterField(

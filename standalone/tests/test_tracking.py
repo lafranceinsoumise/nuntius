@@ -12,13 +12,18 @@ from nuntius.models import (
     CampaignSentEvent,
     CampaignSentStatusType,
     BaseSubscriber,
+    PushCampaign,
+    PushCampaignSentEvent,
 )
 from nuntius.utils.messages import sign_url
+from nuntius.utils.notifications import notification_for_event
 from standalone.models import Subscriber
 
 EXTERNAL_LINK = "http://otherexample.com"
 ESP_MESSAGE_ID = "testmessageid"
 HTML_MESSAGE = '<body><a href="' + EXTERNAL_LINK + '">Link</a></body>'
+IMAGES_URL = "http://images.com"
+LINKS_URL = "http://links.com"
 
 
 class TrackingMixin:
@@ -204,10 +209,11 @@ class BounceTestCase(TrackingMixin, TestCase):
         self.assertEqual(c.result, CampaignSentStatusType.BOUNCED)
 
 
-@patch("nuntius.app_settings.IMAGES_URL", new="http://example.com")
-@patch("nuntius.app_settings.LINKS_URL", new="http://example.com")
+@patch("nuntius.app_settings.IMAGES_URL", new=IMAGES_URL)
+@patch("nuntius.app_settings.LINKS_URL", new=LINKS_URL)
 class TrackingTestCase(TestCase):
     fixtures = ["subscribers.json"]
+    maxDiff = None
 
     def test_open_tracking(self):
         campaign = Campaign.objects.create(
@@ -223,8 +229,8 @@ class TrackingTestCase(TestCase):
         )
 
         self.assertIn(
-            '<img src="http://example.com{}" width="1" height="1" alt="nt">'.format(
-                tracking_url
+            '<img src="{}" width="1" height="1" alt="nt">'.format(
+                IMAGES_URL + tracking_url
             ),
             str(message.message()),
         )
@@ -261,7 +267,7 @@ class TrackingTestCase(TestCase):
         )
 
         self.assertIn(
-            '<a href="http://example.com{}">Link</a>'.format(tracking_url),
+            '<a href="{}">Link</a>'.format(LINKS_URL + tracking_url),
             str(message.message()),
         )
 
@@ -277,5 +283,46 @@ class TrackingTestCase(TestCase):
         self.assertEqual(
             2,
             CampaignSentEvent.objects.get(email="a@example.com").click_count,
+            campaign.get_click_count(),
+        )
+
+    def test_push_click_tracking(self):
+        campaign = PushCampaign.objects.create(
+            notification_title="Notification",
+            notification_url=EXTERNAL_LINK,
+            notification_body="Hey, something happened!",
+            utm_name="tracked_campaign",
+        )
+        subscriber = Subscriber.objects.get(email="a@example.com")
+        event = campaign.get_event_for_subscriber(subscriber)
+        notification = notification_for_event(event)
+        tracking_id = event.tracking_id
+        encoded_tracking_query = "?utm_term="
+
+        tracking_url = LINKS_URL + reverse(
+            "nuntius_track_push_click",
+            kwargs={
+                "tracking_id": tracking_id,
+                "signature": sign_url(campaign, EXTERNAL_LINK + encoded_tracking_query),
+                "link": url_quote(EXTERNAL_LINK + encoded_tracking_query, safe=""),
+            },
+        )
+
+        self.assertEqual(tracking_url, notification["url"])
+
+        for i in range(2):
+            res = self.client.get(tracking_url)
+
+        self.assertRedirects(
+            res,
+            EXTERNAL_LINK
+            + "?utm_campaign=tracked_campaign&utm_source=nuntius&utm_medium=push",
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(
+            2,
+            PushCampaignSentEvent.objects.get(
+                subscriber__email="a@example.com"
+            ).click_count,
             campaign.get_click_count(),
         )

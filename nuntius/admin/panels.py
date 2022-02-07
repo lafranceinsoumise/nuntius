@@ -89,6 +89,8 @@ class CampaignAdmin(admin.ModelAdmin):
             _("Sending details"),
             {
                 "fields": (
+                    "start_date",
+                    "end_date",
                     "first_sent",
                     "segment",
                     "segment_subscribers",
@@ -117,6 +119,8 @@ class CampaignAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "message_subject",
+        "start_date",
+        "end_date",
         "segment",
         "status",
         "send_button",
