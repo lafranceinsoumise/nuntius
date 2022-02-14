@@ -151,17 +151,18 @@ class PushCampaignAdmin(admin.ModelAdmin):
 
 
 class TrackingFilter(admin.SimpleListFilter):
-    title = _("Tracking")
-    parameter_name = "tracking"
+    title = _("Clicked")
+    parameter_name = "clicked"
 
     def lookups(self, request, model_admin):
-        return ("O", _("Opened")), ("C", _("Clicked"))
+        return (("1", _("Yes")), ("0", _("No")))
 
     def queryset(self, request, queryset):
-        if self.value() == "O":
-            return queryset.exclude(open_count=0)
-        if self.value() == "C":
+        if self.value() == "1":
             return queryset.exclude(click_count=0)
+        if self.value() == "0":
+            return queryset.filter(click_count=0)
+        return queryset
 
 
 class PushCampaignSentEventAdmin(admin.ModelAdmin):
@@ -177,7 +178,7 @@ class PushCampaignSentEventAdmin(admin.ModelAdmin):
     list_display_links = None
 
     def get_list_display(self, request):
-        list_display = ("subscriber", "datetime", "result", "open_count", "click_count")
+        list_display = ("subscriber", "datetime", "result", "click_count")
         if request.GET.get("campaign_id__exact") is None:
             list_display = ("campaign_filter", *list_display)
         if request.GET.get("subscriber_id__exact") is None:
