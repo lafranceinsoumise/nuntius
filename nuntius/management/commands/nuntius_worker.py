@@ -540,7 +540,8 @@ def campaign_types_argument(campaign_types):
 
 class Command(BaseCommand):
     STATS_MESSAGE = gettext_lazy(
-        """STATISTICS
+        """
+%(campaign_type)s STATISTICS
 Message queue size: %(queue_size)s
 Sender processes: %(sender_processes)s
 Campaign managers: %(campaign_managers)s
@@ -561,8 +562,11 @@ Current sending rate: %(sending_rate)s"""
         )
 
     def handle(self, *args, campaign_types=None, **options):
-        # used by campaign managers processes to queue emails to send
-        self.queue = mp.Queue(maxsize=app_settings.MAX_CONCURRENT_SENDERS * 2)
+        # used by campaign managers processes to queue messages to send
+        self.queue = {
+            key: mp.Queue(maxsize=app_settings.MAX_CONCURRENT_SENDERS)
+            for key in CAMPAIGN_TYPE.keys()
+        }
 
         # used to signals to sender they should exist once the queue has been emptied
         self.senders_quit_event = mp.Event()
@@ -582,10 +586,14 @@ Current sending rate: %(sending_rate)s"""
         }
 
         # used by sender processes to signal when a campaign failed, so that it can be stopped by the main process
-        self.sender_pipes: List[mp.connection.Connection] = []
+        self.sender_pipes: Dict[str, List[mp.connection.Connection]] = {
+            key: [] for key in CAMPAIGN_TYPE.keys()
+        }
 
         # used by the main process to monitor campaign managers and tell them to quit
-        self.campaign_manager_processes: Dict[int, Tuple[mp.Process, mp.Event]] = {}
+        self.campaign_manager_processes: Dict[
+            str, Dict[int, Tuple[mp.Process, mp.Event]]
+        ] = {key: {} for key in CAMPAIGN_TYPE.keys()}
 
         self._setup_signals()
         self.run_loop(campaign_types)
@@ -610,22 +618,27 @@ Current sending rate: %(sending_rate)s"""
             signal.pthread_sigmask(signal.SIG_UNBLOCK, [signal.SIGTERM, signal.SIGINT])
 
     def print_stats(self, sig, stack):
-        values = {
-            "queue_size": self.queue.qsize(),
-            "sender_processes": [
-                p.pid for p in sum(self.sender_processes.values(), [])
-            ],
-            "campaign_managers": [
-                p.pid for p, _ in self.campaign_manager_processes.values()
-            ],
-            "bucket_capacity": self.rate_limiter.peek(),
-            "sending_rate": self.rate_meter.current_rate(),
-        }
-
-        self.stderr.write(self.STATS_MESSAGE % values, ending="\n")
+        for campaign_type in CAMPAIGN_TYPE.keys():
+            values = {
+                "campaign_type": campaign_type.upper(),
+                "queue_size": self.queue[campaign_type].qsize(),
+                "sender_processes": [
+                    process.pid for process in self.sender_processes[campaign_type]
+                ],
+                "campaign_managers": [
+                    process.pid
+                    for process, _ in self.campaign_manager_processes[
+                        campaign_type
+                    ].values()
+                ],
+                "bucket_capacity": self.rate_limiter.peek(),
+                "sending_rate": self.rate_meter.current_rate(),
+            }
+            self.stderr.write(self.STATS_MESSAGE % values, ending="\n\n")
 
     def start_sender_processes(self, campaign_type):
         sender_processes = self.sender_processes[campaign_type]
+        queue = self.queue[campaign_type]
 
         for i in range(app_settings.MAX_CONCURRENT_SENDERS - len(sender_processes)):
             if i == 0:
@@ -634,7 +647,7 @@ Current sending rate: %(sending_rate)s"""
             process = mp.Process(
                 target=CAMPAIGN_TYPE[campaign_type]["sender_process"],
                 kwargs={
-                    "queue": self.queue,
+                    "queue": queue,
                     "error_channel": send_conn,
                     "rate_limiter": self.rate_limiter,
                     "rate_meter": self.rate_meter,
@@ -644,7 +657,7 @@ Current sending rate: %(sending_rate)s"""
             process.daemon = True
 
             sender_processes.append(process)
-            self.sender_pipes.append(recv_conn)
+            self.sender_pipes[campaign_type].append(recv_conn)
             # let's close SQL connection to make sure it is not shared with children
             connection.close()
             with self._setup_signal_handlers_for_children():
@@ -659,11 +672,13 @@ Current sending rate: %(sending_rate)s"""
     def check_campaigns(self, campaign_type):
         CampaignModel = CAMPAIGN_TYPE[campaign_type]["CampaignModel"]
         campaigns = CampaignModel.objects.outbox()
+        campaign_manager_process = self.campaign_manager_processes[campaign_type]
+        queue = self.queue[campaign_type]
 
         for campaign in campaigns:
             if (
                 campaign.status == CampaignModel.STATUS_WAITING
-                and campaign.id in self.campaign_manager_processes
+                and campaign.id in campaign_manager_process
             ):
                 # we need to cancel that task
                 logger.info(
@@ -672,45 +687,52 @@ Current sending rate: %(sending_rate)s"""
                     )
                     % {"campaign_id": campaign.id, "campaign_name": campaign.name[20:]}
                 )
-                _process, quit_event = self.campaign_manager_processes[campaign.id]
+                _process, quit_event = campaign_manager_process[campaign.id]
                 quit_event.set()
 
             if (
                 campaign.status == CampaignModel.STATUS_SENDING
-                and campaign.id not in self.campaign_manager_processes
+                and campaign.id not in campaign_manager_process
             ):
                 quit_event = mp.Event()
                 process = mp.Process(
                     target=CAMPAIGN_TYPE[campaign_type]["manager_process"],
                     kwargs={
                         "campaign": campaign,
-                        "queue": self.queue,
+                        "queue": queue,
                         "quit_event": quit_event,
                     },
                 )
                 process.daemon = True
-                self.campaign_manager_processes[campaign.id] = (process, quit_event)
+                campaign_manager_process[campaign.id] = (process, quit_event)
                 # let's close SQL connection to make sure it is not shared with children
                 connection.close()
                 with self._setup_signal_handlers_for_children():
                     process.start()
                 logger.info(
-                    _("Started campaign manager %(process_pid)s for %(campaign)s")
-                    % {"process_pid": process.pid, "campaign": repr(campaign)}
+                    _(
+                        "Started %(campaign_type)s campaign manager %(process_pid)s for %(campaign)s"
+                    )
+                    % {
+                        "campaign_type": campaign_type,
+                        "process_pid": process.pid,
+                        "campaign": repr(campaign),
+                    }
                 )
 
     def monitor_processes(self, campaign_type):
         CampaignModel = CAMPAIGN_TYPE[campaign_type]["CampaignModel"]
         sender_processes = self.sender_processes[campaign_type]
+        campaign_manager_process = self.campaign_manager_processes[campaign_type]
+        sender_pipes = self.sender_pipes[campaign_type]
 
         sender_sentinels = [p.sentinel for p in sender_processes]
         campaign_manager_sentinels = {
-            p.sentinel: c_id
-            for c_id, (p, _e) in self.campaign_manager_processes.items()
+            p.sentinel: c_id for c_id, (p, _e) in campaign_manager_process.items()
         }
 
         events = mpc.wait(
-            sender_sentinels + list(campaign_manager_sentinels) + self.sender_pipes,
+            sender_sentinels + list(campaign_manager_sentinels) + sender_pipes,
             timeout=app_settings.POLLING_INTERVAL,
         )
 
@@ -723,7 +745,7 @@ Current sending rate: %(sending_rate)s"""
                 stopped_senders.append(sender_sentinels.index(event))
             if event in campaign_manager_sentinels:
                 stopped_campaign_managers.append(campaign_manager_sentinels[event])
-            elif event in self.sender_pipes:
+            elif event in sender_pipes:
                 while event.poll():
                     try:
                         campaign_errors.add(event.recv())
@@ -741,10 +763,10 @@ Current sending rate: %(sending_rate)s"""
                 % {"process_pid": process.pid}
             )
             del sender_processes[i]
-            del self.sender_pipes[i]
+            del sender_pipes[i]
 
         for campaign_id in sorted(stopped_campaign_managers):
-            process, _quit_event = self.campaign_manager_processes[campaign_id]
+            process, _quit_event = campaign_manager_process[campaign_id]
             pid = process.pid
             # let's reap process to avoid zombies
             process.join()
@@ -773,20 +795,20 @@ Current sending rate: %(sending_rate)s"""
                     exc_info=True,
                 )
 
-            del self.campaign_manager_processes[campaign_id]
+            del campaign_manager_process[campaign_id]
 
         for campaign_id in campaign_errors:
             CampaignModel.objects.filter(id=campaign_id).update(
                 status=CampaignModel.STATUS_ERROR
             )
-            if campaign_id in self.campaign_manager_processes:
+            if campaign_id in campaign_manager_process:
                 logger.error(
                     _(
                         "Unexpected error while trying to send message from campaign %(campaign_id)s...\n"
                     )
                     % {"campaign_id": campaign_id}
                 )
-                self.campaign_manager_processes[campaign_id][1].set()
+                campaign_manager_process[campaign_id][1].set()
 
     def run_loop(self, campaign_types):
         try:
@@ -799,16 +821,26 @@ Current sending rate: %(sending_rate)s"""
         except (GracefulExit, KeyboardInterrupt):
             logger.info(_("Asked to quit, asking all subprocesses to exit..."))
             self.senders_quit_event.set()
-            for _proces, event in self.campaign_manager_processes.values():
-                event.set()
+
+            for campaign_type in campaign_types:
+                for _proces, event in self.campaign_manager_processes[
+                    campaign_type
+                ].values():
+                    event.set()
 
             logger.info(_("Waiting for all subprocesses to gracefully exit..."))
             # active_children joins children so removes zombies
-            while mp.active_children():
-                sender_processes = sum(self.sender_processes.values(), [])
-                mpc.wait(
-                    [p.sentinel for p in sender_processes]
-                    + [p.sentinel for p, _e in self.campaign_manager_processes.values()]
-                )
+            for campaign_type in campaign_types:
+                while mp.active_children():
+                    sender_processes = sum(self.sender_processes.values(), [])
+                    mpc.wait(
+                        [p.sentinel for p in sender_processes]
+                        + [
+                            p.sentinel
+                            for p, _e in self.campaign_manager_processes[
+                                campaign_type
+                            ].values()
+                        ]
+                    )
 
             logger.info(_("All subprocesses have exited!"))
