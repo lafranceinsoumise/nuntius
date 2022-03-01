@@ -415,7 +415,11 @@ msgstr "Texte de la notification"
 msgid "Notification tag"
 msgstr "Catégorie de la notification"
 
-#: models/push_campaigns.py:19
+#: models/push_campaigns.py:20
+msgid "Tagging a notification allows replacing it by pushing another with the same tag value"
+msgstr "Ajouter une catégorie à la notification permet de la remplacer après l'envoi par une autre de la même catégorie"
+
+#: models/push_campaigns.py:25
 msgid "Notification icon"
 msgstr "URL de l'icône de la notification"
 
