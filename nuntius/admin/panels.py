@@ -119,8 +119,6 @@ class CampaignAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "message_subject",
-        "start_date",
-        "end_date",
         "segment",
         "status",
         "send_button",
@@ -417,10 +415,16 @@ class CampaignSentEventAdmin(admin.ModelAdmin):
 
     def get_list_display(self, request):
         list_display = ("email", "datetime", "result", "open_count", "click_count")
+
         if request.GET.get("campaign_id__exact") is None:
             list_display = ("campaign_filter", *list_display)
+        else:
+            list_display = ("campaign", *list_display)
+
         if request.GET.get("subscriber_id__exact") is None:
             list_display = ("subscriber_filter", *list_display)
+        else:
+            list_display = ("subscriber", *list_display)
 
         return list_display
 

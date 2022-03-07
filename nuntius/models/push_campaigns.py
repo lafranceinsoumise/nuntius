@@ -13,7 +13,13 @@ class PushCampaign(AbstractCampaign):
     notification_url = fields.CharField(_("Notification URL"), max_length=255)
     notification_body = fields.TextField(_("Notification body"))
     notification_tag = fields.CharField(
-        _("Notification tag"), null=True, blank=True, max_length=255
+        _("Notification tag"),
+        null=True,
+        blank=True,
+        max_length=255,
+        help_text=_(
+            "Tagging a notification allows replacing it by pushing another with the same tag value"
+        ),
     )
     notification_icon = fields.CharField(
         _("Notification icon"), null=True, blank=True, max_length=255

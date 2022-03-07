@@ -14,8 +14,9 @@ from nuntius.models.push_campaigns import PushCampaign, PushCampaignSentEvent
 class PushCampaignAdmin(admin.ModelAdmin):
     search_fields = ("name", "notification_title")
     autocomplete_fields = ("segment",)
+    prepopulated_fields = {"utm_name": ("name",)}
     fieldsets = (
-        (None, {"fields": ("created", "updated", "name")}),
+        (None, {"fields": ("created", "updated", "name", "utm_name")}),
         (
             _("Notification"),
             {
@@ -24,7 +25,6 @@ class PushCampaignAdmin(admin.ModelAdmin):
                     "notification_url",
                     "notification_body",
                     "notification_tag",
-                    "notification_icon",
                 )
             },
         ),
@@ -50,8 +50,6 @@ class PushCampaignAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "notification_title",
-        "start_date",
-        "end_date",
         "segment",
         "status",
         "send_button",
@@ -178,11 +176,17 @@ class PushCampaignSentEventAdmin(admin.ModelAdmin):
     list_display_links = None
 
     def get_list_display(self, request):
-        list_display = ("subscriber", "datetime", "result", "click_count")
+        list_display = ("datetime", "result", "click_count")
+
         if request.GET.get("campaign_id__exact") is None:
             list_display = ("campaign_filter", *list_display)
+        else:
+            list_display = ("campaign", *list_display)
+
         if request.GET.get("subscriber_id__exact") is None:
             list_display = ("subscriber_filter", *list_display)
+        else:
+            list_display = ("subscriber", *list_display)
 
         return list_display
 
