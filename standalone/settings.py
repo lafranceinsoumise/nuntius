@@ -71,7 +71,7 @@ LANGUAGE_CODE = os.environ.get("LANGUAGE_CODE", "en")
 
 NUNTIUS_PUBLIC_URL = os.environ.get("NUNTIUS_PUBLIC_URL", "http://localhost:8000")
 NUNTIUS_ENABLED_CAMPAIGN_TYPES = os.environ.get(
-    "NUNTIUS_ENABLED_CAMPAIGN_TYPES", "email,push"
+    "NUNTIUS_ENABLED_CAMPAIGN_TYPES", "email"
 ).split(",")
 NUNTIUS_DISABLE_DEFAULT_ADMIN = True
 NUNTIUS_SEGMENT_MODEL = "standalone.Segment"
