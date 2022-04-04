@@ -16,6 +16,8 @@ class BaseSegment:
 
     class Meta:
         swappable = "NUNTIUS_SEGMENT_MODEL"
+        verbose_name = _("Segment")
+        verbose_name_plural = _("Segments")
 
 
 class BaseSubscriberManager(models.Manager):
@@ -65,13 +67,17 @@ class AbstractSubscriber:
 
     class Meta:
         abstract = True
+        verbose_name = _("Subscriber")
+        verbose_name_plural = _("Subscribers")
 
 
 class BaseSubscriber(AbstractSubscriber, models.Model):
     objects = BaseSubscriberManager()
 
-    email = fields.EmailField(max_length=255)
-    subscriber_status = fields.IntegerField(choices=AbstractSubscriber.STATUS_CHOICES)
+    email = fields.EmailField(max_length=255, verbose_name=_("Email"))
+    subscriber_status = fields.IntegerField(
+        choices=AbstractSubscriber.STATUS_CHOICES, verbose_name=_("Subscriber status")
+    )
 
     class Meta(AbstractSubscriber.Meta):
         swappable = "NUNTIUS_SUBSCRIBER_MODEL"

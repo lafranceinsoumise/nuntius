@@ -1,6 +1,7 @@
 from django.db import models
 
 from nuntius.models import BaseSubscriber, BaseSegment
+from django.utils.translation import gettext_lazy as _
 
 
 class Segment(BaseSegment, models.Model):
@@ -22,9 +23,13 @@ class Segment(BaseSegment, models.Model):
     def __str__(self):
         return self.get_display_name()
 
+    class Meta(BaseSegment.Meta):
+        verbose_name = _("List")
+        verbose_name_plural = _("Lists")
+
 
 class Subscriber(BaseSubscriber):
-    segments = models.ManyToManyField("standalone.Segment")
+    segments = models.ManyToManyField("standalone.Segment", verbose_name=_("Lists"))
 
     def get_subscriber_push_devices(self):
         try:
