@@ -29,9 +29,9 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.7"
 Django = ">=2.0"
-Pillow = "*"
+Pillow = ">=9.0.1"
 django-stdimage = "*"
 html2text = "*"
 tenacity = "*"
