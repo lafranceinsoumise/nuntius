@@ -1,6 +1,7 @@
 import os
 
 import django.db.models
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEBUG = True
@@ -103,4 +104,10 @@ EMAIL_PORT = "1025"
 ANYMAIL_WEBHOOK_SECRET = "test:test"
 
 if "push" in NUNTIUS_ENABLED_CAMPAIGN_TYPES:
+    try:
+        import push_notifications
+    except ModuleNotFoundError:
+        raise ImproperlyConfigured(
+            'You activated push notifications but did not install optional dependencies. Use poetry install --extras "push"'
+        )
     INSTALLED_APPS.append("push_notifications")
