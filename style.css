@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@700&family=Jost:wght@400;700&display=swap');
+
+html {
+  font-size: 100%;
+  height: 100%;
+}
+
+body {
+  height: 100%;
+  font-family: 'Josefin Sans', sans-serif;;
+  color: #0C1B63;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  text-transform: capitalize;
+  height: 56px;
+  margin: 60px;
+}
+
+header > h1 {
+  text-transform: uppercase;
+  flex-grow: 1;
+  font-size: 1.5rem;
+}
+
+header > a {
+  text-transform: uppercase;
+  padding: 15px 15px;
+  font-size: 1rem;
+  text-decoration: none;
+}
+
+.github-button {
+  text-transform: uppercase;
+  padding: 15px 15px;
+  font-size: 1rem;
+  text-decoration: none;
+  background-color: #4B64DD;
+  color: white;
+}
+
+.github-button > img {
+  margin: -8px 8px -8px 0;
+}
+
+main {
+  display: flex;
+  flex-direction: row;
+  align-items: start;
+  justify-content: space-evenly;
+  flex-grow: 1;
+}
+
+main > section > h3 {
+  font-size: 2rem;
+  color: #4B64DD;
+  text-transform: uppercase;
+}
+
+main > section > h1 {
+  font-family: 'Jost', sans-serif;
+  font-size: 3rem;
+  text-transform: uppercase;
+}
+
+main > section > p {
+  font-family: 'Jost', sans-serif;
+  font-weight: normal;
+}
+
+main > section > .github-button {
+  line-height: 3rem;
+}
+
+footer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  background-color: #4B64DD;
+  height: 4rem;
+  font-family: 'Jost', sans-serif;
+  font-size: 1rem;
+  font-weight: normal;
+  text-align: center;
+  color: white;
+}
+
+footer > img {
+  margin-left: 10px;
+}
