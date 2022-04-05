@@ -2,17 +2,26 @@
 
 html {
   font-size: 100%;
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
-  height: 100%;
+  min-height: 100vh;
   font-family: 'Josefin Sans', sans-serif;;
   color: #0C1B63;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   display: flex;
   flex-direction: column;
+}
+
+a {
+  color: #4B64DD;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
 }
 
 header {
@@ -56,6 +65,16 @@ main {
   align-items: start;
   justify-content: space-evenly;
   flex-grow: 1;
+  flex-wrap: wrap;
+}
+
+main > * {
+  margin: 0 3rem;
+}
+
+main > section {
+  flex-basis: 650px;
+  flex-grow: 0;
 }
 
 main > section > h3 {
@@ -70,9 +89,10 @@ main > section > h1 {
   text-transform: uppercase;
 }
 
-main > section > p {
+main > section > * {
   font-family: 'Jost', sans-serif;
   font-weight: normal;
+  font-size: 1.5rem;
 }
 
 main > section > .github-button {
@@ -91,6 +111,7 @@ footer {
   font-weight: normal;
   text-align: center;
   color: white;
+  margin-top: 4rem;
 }
 
 footer > img {
