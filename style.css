@@ -29,8 +29,9 @@ header {
   flex-direction: row;
   align-items: center;
   text-transform: capitalize;
-  height: 56px;
-  margin: 60px;
+  height: 3.5rem;
+  margin: 4rem;
+  margin-bottom: 0;
 }
 
 header > h1 {
@@ -62,7 +63,7 @@ header > a {
 main {
   display: flex;
   flex-direction: row;
-  align-items: start;
+  align-items: center;
   justify-content: space-evenly;
   flex-grow: 1;
   flex-wrap: wrap;
@@ -70,6 +71,10 @@ main {
 
 main > * {
   margin: 0 3rem;
+}
+
+main > img {
+  margin-top: 3rem;
 }
 
 main > section {
@@ -81,22 +86,25 @@ main > section > h3 {
   font-size: 2rem;
   color: #4B64DD;
   text-transform: uppercase;
+  font-weight: bold;
 }
 
 main > section > h1 {
   font-family: 'Jost', sans-serif;
-  font-size: 3rem;
+  font-weight: bold;
+  font-size: 4rem;
   text-transform: uppercase;
+  margin: 1rem 0;
 }
 
 main > section > * {
   font-family: 'Jost', sans-serif;
   font-weight: normal;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
 }
 
 main > section > .github-button {
-  line-height: 3rem;
+  line-height: 4rem;
 }
 
 footer {
