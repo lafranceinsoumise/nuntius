@@ -45,9 +45,7 @@ TEMPLATES = [
     }
 ]
 
-DATABASES = {
-    "default": dj_database_url.config(default="sqlite:///db.sqlite3")
-}
+DATABASES = {"default": dj_database_url.config(default="sqlite:///db.sqlite3")}
 
 LOGGING = {
     "version": 1,

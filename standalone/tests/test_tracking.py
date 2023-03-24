@@ -326,3 +326,9 @@ class TrackingTestCase(TestCase):
             ).click_count,
             campaign.get_click_count(),
         )
+
+    def test_complicated_link_tracking(self):
+        URL = (
+            "https://twitter.com/intent/tweet?original_referer=https%3A%2F%2Fpublish.twitter.com%2F&ref_src=twsrc%5Etf"
+            "w%7Ctwcamp%5Ebuttonembed%7Ctwterm%5Eshare%7Ctwgr%5E&text=Mercredi%2015%20mars%20%C3%A0%2019h%2C%20%40JLMelenchon%20sera%20en%20meeting%20contre%20la%20%23ReformeDesRetraites%20%C3%A0%20Chevilly-Larue%20avec%20%40KekeRachel%20et%20%40MathildePanot%20%23PourNosRetraites&url=https%3A%2F%2Factionpopulaire.fr%2Fevenements%2F3a167ba7-99fb-4709-876e-60d9994322a4%2F"
+        )

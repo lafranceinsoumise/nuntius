@@ -45,7 +45,7 @@ dj-database-url = ">=1.2.0"
 
 [tool.poetry.dev-dependencies]
 tqdm = "^4.60.0"
-black = "==18.9b0"
+black = "^23.1.0"
 
 [tool.poetry.extras]
 anymail = ["django-anymail", "boto3"]
