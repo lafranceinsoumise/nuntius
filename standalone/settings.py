@@ -1,6 +1,6 @@
 import os
 
-import django.db.models
+import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -46,13 +46,9 @@ TEMPLATES = [
 ]
 
 DATABASES = {
-    "default": {
-        "ENGINE": os.environ.get("DB_ENGINE", "django.db.backends.mysql"),
-        "NAME": os.environ.get("DB_NAME", "nuntius"),
-        "USER": os.environ.get("DB_USER", "nuntius"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", "password"),
-    }
+    "default": dj_database_url.config(default="sqlite:///db.sqlite3")
 }
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

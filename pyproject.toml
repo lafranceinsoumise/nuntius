@@ -41,10 +41,10 @@ mysqlclient = { version = "*", optional = true }
 django-push-notifications = {version = ">=2.0.0", optional = true}
 apns = {version = ">=2.0.1", optional = true}
 pywebpush = {version = ">=1.14.0", optional = true}
+dj-database-url = ">=1.2.0"
 
 [tool.poetry.dev-dependencies]
 tqdm = "^4.60.0"
-
 black = "==18.9b0"
 
 [tool.poetry.extras]
