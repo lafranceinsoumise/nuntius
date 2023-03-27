@@ -5,7 +5,6 @@ import stdimage.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("nuntius", "0023_add_help_text_to_pushcampaign_notification_tag"),
     ]
