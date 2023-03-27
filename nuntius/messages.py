@@ -15,11 +15,10 @@ RE_URL = re.compile(
 )
 
 
-def insert_tracking_image_template(html_message):
+def insert_tracking_image_template(html_message, tracking_id):
     # use old style formatting to avoid ugly escaping of template variable
-    img_url = "%s%sopen/{{ nuntius_tracking_id }}" % (
-        app_settings.PUBLIC_URL,
-        reverse("nuntius_mount_path"),
+    img_url = "{}{}open/{}".format(
+        app_settings.PUBLIC_URL, reverse("nuntius_mount_path"), tracking_id
     )
     img = f'<img src="{img_url}" width="1" height="1" alt="nt">'
     return re.sub(
@@ -60,8 +59,11 @@ def href_url_replacer(campaign, tracking_id):
 
 
 def add_tracking_information(html_body: str, campaign, tracking_id):
-    return RE_URL.sub(
-        href_url_replacer(campaign=campaign, tracking_id=tracking_id), html_body
+    return insert_tracking_image_template(
+        RE_URL.sub(
+            href_url_replacer(campaign=campaign, tracking_id=tracking_id), html_body
+        ),
+        tracking_id,
     )
 
 
@@ -78,12 +80,7 @@ def message_for_event(sent_event):
     campaign = sent_event.campaign
     email = sent_event.email
 
-    subscriber_data = Context(
-        {
-            "nuntius_tracking_id": sent_event.tracking_id,
-            **subscriber.get_subscriber_data(),
-        }
-    )
+    subscriber_data = Context(subscriber.get_subscriber_data())
 
     html_body = add_tracking_information(
         campaign.html_template.render(context=subscriber_data),

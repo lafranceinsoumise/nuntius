@@ -109,9 +109,7 @@ class Campaign(AbstractCampaign):
 
     @cached_property
     def html_template(self):
-        from nuntius.messages import insert_tracking_image_template
-
-        return Template(insert_tracking_image_template(self.message_content_html))
+        return Template(self.message_content_html)
 
     @cached_property
     def text_template(self):
