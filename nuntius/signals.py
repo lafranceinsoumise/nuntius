@@ -1,4 +1,5 @@
 import logging
+from typing import Any, MutableMapping
 
 from django.db import transaction
 from django.dispatch import receiver
@@ -7,7 +8,23 @@ from nuntius.actions import update_subscriber
 from nuntius.admin import subscriber_class
 from nuntius.models import CampaignSentEvent, CampaignSentStatusType
 
-logger = logging.getLogger(__name__)
+
+class AnymailLoggerAdapter(logging.LoggerAdapter):
+    def process(
+        self, msg: Any, kwargs: MutableMapping[str, Any]
+    ) -> tuple[Any, MutableMapping[str, Any]]:
+        kwargs["extra"] = {**kwargs.get("extra", {}), "event": msg}
+        return (
+            "event_type={} recipient={}".format(
+                msg.event_type,
+                msg.recipient,
+            ),
+            kwargs,
+        )
+
+
+logger = AnymailLoggerAdapter(logging.getLogger(__name__))
+
 
 try:
     from anymail.signals import tracking, EventType
@@ -40,9 +57,9 @@ else:
                 campaign_status = CampaignSentStatusType.BLOCKED
 
         if event.event_type == EventType.SENT:
-            logger.debug(event.event_type + " : " + str(event.esp_event))
+            logger.debug(event)
         else:
-            logger.info(event.event_type + " : " + str(event.esp_event))
+            logger.info(event)
 
         with transaction.atomic():
             defaults = dict()

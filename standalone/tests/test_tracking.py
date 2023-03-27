@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import re
 from html import unescape
 from unittest.mock import patch
@@ -200,12 +201,19 @@ class BounceTestCase(TrackingMixin, TestCase):
         c.esp_message_id = ESP_MESSAGE_ID
         c.save()
 
-        response = self.post_webhook(
-            reverse("anymail:amazon_ses_tracking_webhook"),
-            self.amazon_hard_bounce_payload,
-            HTTP_X_AMZ_SNS_MESSAGE_ID=ESP_MESSAGE_ID,
-            HTTP_X_AMZ_SNS_MESSAGE_TYPE="Notification",
+        with self.assertLogs("nuntius", logging.INFO) as log_results:
+            response = self.post_webhook(
+                reverse("anymail:amazon_ses_tracking_webhook"),
+                self.amazon_hard_bounce_payload,
+                HTTP_X_AMZ_SNS_MESSAGE_ID=ESP_MESSAGE_ID,
+                HTTP_X_AMZ_SNS_MESSAGE_TYPE="Notification",
+            )
+
+        self.assertEqual(
+            log_results.output,
+            ["INFO:nuntius.signals:event_type=bounced recipient=a@example.com"],
         )
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             Subscriber.objects.get(email="a@example.com").subscriber_status,
@@ -223,9 +231,15 @@ class BounceTestCase(TrackingMixin, TestCase):
         c.esp_message_id = ESP_MESSAGE_ID
         c.save()
 
-        self.post_webhook(
-            reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload()
+        with self.assertLogs("nuntius", logging.INFO) as log_results:
+            self.post_webhook(
+                reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload()
+            )
+        self.assertEqual(
+            log_results.output,
+            ["INFO:nuntius.signals:event_type=bounced recipient=a@example.com"],
         )
+
         c.refresh_from_db()
         self.assertEqual(c.result, CampaignSentStatusType.BOUNCED)
 

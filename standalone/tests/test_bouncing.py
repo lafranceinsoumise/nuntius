@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 from unittest import mock
 
@@ -30,8 +31,13 @@ class BouncingTestCase(TrackingMixin, TestCase):
     fixtures = ["subscribers.json"]
 
     def test_first_send_is_bounce_then_bounce(self):
-        self.post_webhook(
-            reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload()
+        with self.assertLogs("nuntius", logging.INFO) as log_results:
+            self.post_webhook(
+                reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload()
+            )
+        self.assertEqual(
+            log_results.output,
+            ["INFO:nuntius.signals:event_type=bounced recipient=a@example.com"],
         )
         self.assertEqual(
             Subscriber.objects.get(email="a@example.com").get_subscriber_status(),
@@ -42,9 +48,15 @@ class BouncingTestCase(TrackingMixin, TestCase):
         CampaignSentEvent.objects.create(
             email="a@example.com", result=CampaignSentStatusType.OK
         )
-        self.post_webhook(
-            reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload()
+        with self.assertLogs("nuntius", logging.INFO) as log_results:
+            self.post_webhook(
+                reverse("anymail:sendgrid_tracking_webhook"), self.sendgrid_payload()
+            )
+        self.assertEqual(
+            log_results.output,
+            ["INFO:nuntius.signals:event_type=bounced recipient=a@example.com"],
         )
+
         self.assertEqual(
             Subscriber.objects.get(email="a@example.com").get_subscriber_status(),
             AbstractSubscriber.STATUS_SUBSCRIBED,
@@ -55,20 +67,36 @@ class BouncingTestCase(TrackingMixin, TestCase):
             email="a@example.com", result=CampaignSentStatusType.OK
         )
 
-        for i in range(0, 3):
-            self.post_webhook(
-                reverse("anymail:sendgrid_tracking_webhook"),
-                self.sendgrid_payload(esp_message_id=ESP_MESSAGE_ID + str(i)),
-            )
+        with self.assertLogs("nuntius", logging.INFO) as log_results:
+            for i in range(0, 3):
+                self.post_webhook(
+                    reverse("anymail:sendgrid_tracking_webhook"),
+                    self.sendgrid_payload(esp_message_id=ESP_MESSAGE_ID + str(i)),
+                )
+        self.assertEqual(
+            log_results.output,
+            [
+                "INFO:nuntius.signals:event_type=bounced recipient=a@example.com",
+                "INFO:nuntius.signals:event_type=bounced recipient=a@example.com",
+                "INFO:nuntius.signals:event_type=bounced recipient=a@example.com",
+            ],
+        )
+
         self.assertEqual(
             Subscriber.objects.get(email="a@example.com").get_subscriber_status(),
             AbstractSubscriber.STATUS_SUBSCRIBED,
         )
 
-        self.post_webhook(
-            reverse("anymail:sendgrid_tracking_webhook"),
-            self.sendgrid_payload(esp_message_id=ESP_MESSAGE_ID + "onemore"),
+        with self.assertLogs("nuntius", logging.INFO) as log_results:
+            self.post_webhook(
+                reverse("anymail:sendgrid_tracking_webhook"),
+                self.sendgrid_payload(esp_message_id=ESP_MESSAGE_ID + "onemore"),
+            )
+        self.assertEqual(
+            log_results.output,
+            ["INFO:nuntius.signals:event_type=bounced recipient=a@example.com"],
         )
+
         self.assertEqual(
             Subscriber.objects.get(email="a@example.com").get_subscriber_status(),
             AbstractSubscriber.STATUS_BOUNCED,
@@ -80,19 +108,28 @@ class BouncingTestCase(TrackingMixin, TestCase):
         CampaignSentEvent.objects.create(
             email="a@example.com", result=CampaignSentStatusType.OK
         )
-        self.post_webhook(
-            reverse("anymail:sendgrid_tracking_webhook"),
-            self.sendgrid_payload(esp_message_id=ESP_MESSAGE_ID + "first week"),
-        )
+        with self.assertLogs("nuntius", logging.INFO) as log_results:
+            self.post_webhook(
+                reverse("anymail:sendgrid_tracking_webhook"),
+                self.sendgrid_payload(esp_message_id=ESP_MESSAGE_ID + "first week"),
+            )
+            self.assertEqual(
+                Subscriber.objects.get(email="a@example.com").get_subscriber_status(),
+                AbstractSubscriber.STATUS_SUBSCRIBED,
+            )
+            self.post_webhook(
+                reverse("anymail:sendgrid_tracking_webhook"),
+                self.sendgrid_payload(esp_message_id=ESP_MESSAGE_ID + "one week later"),
+            )
+            self.assertEqual(
+                Subscriber.objects.get(email="a@example.com").get_subscriber_status(),
+                AbstractSubscriber.STATUS_BOUNCED,
+            )
+
         self.assertEqual(
-            Subscriber.objects.get(email="a@example.com").get_subscriber_status(),
-            AbstractSubscriber.STATUS_SUBSCRIBED,
-        )
-        self.post_webhook(
-            reverse("anymail:sendgrid_tracking_webhook"),
-            self.sendgrid_payload(esp_message_id=ESP_MESSAGE_ID + "one week later"),
-        )
-        self.assertEqual(
-            Subscriber.objects.get(email="a@example.com").get_subscriber_status(),
-            AbstractSubscriber.STATUS_BOUNCED,
+            log_results.output,
+            [
+                "INFO:nuntius.signals:event_type=bounced recipient=a@example.com",
+                "INFO:nuntius.signals:event_type=bounced recipient=a@example.com",
+            ],
         )
