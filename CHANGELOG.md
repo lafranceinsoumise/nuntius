@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.0
+
+* Fixes html-escaping bug when handling tracking URLs.
+
 ## 2.1.8
 
 ### Features
