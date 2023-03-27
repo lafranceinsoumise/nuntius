@@ -1,12 +1,19 @@
 import base64
 import json
+import re
+from html import unescape
 from unittest.mock import patch
 from urllib.parse import quote as url_quote
 
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.html import format_html
 
-from nuntius.messages import message_for_event
+from nuntius.messages import (
+    message_for_event,
+    make_tracking_url,
+    add_tracking_information,
+)
 from nuntius.models import (
     Campaign,
     CampaignSentEvent,
@@ -342,6 +349,36 @@ class TrackingTestCase(TestCase):
 
     def test_complicated_link_tracking(self):
         URL = (
-            "https://twitter.com/intent/tweet?original_referer=https%3A%2F%2Fpublish.twitter.com%2F&ref_src=twsrc%5Etf"
-            "w%7Ctwcamp%5Ebuttonembed%7Ctwterm%5Eshare%7Ctwgr%5E&text=Mercredi%2015%20mars%20%C3%A0%2019h%2C%20%40JLMelenchon%20sera%20en%20meeting%20contre%20la%20%23ReformeDesRetraites%20%C3%A0%20Chevilly-Larue%20avec%20%40KekeRachel%20et%20%40MathildePanot%20%23PourNosRetraites&url=https%3A%2F%2Factionpopulaire.fr%2Fevenements%2F3a167ba7-99fb-4709-876e-60d9994322a4%2F"
+            "https://twitter.com/intent/tweet?original_referer=https%3A%2F%2Fpublish.twitter.com%2F&ref_src=twsrc%5Etfw"
+            "%7Ctwcamp%5Ebuttonembed%7Ctwterm%5Eshare%7Ctwgr%5E&text=Mercredi%2015%20mars%20%C3%A0%2019h%2C%20%40JLMele"
+            "nchon%20sera%20en%20meeting%20contre%20la%20%23ReformeDesRetraites%20%C3%A0%20Chevilly-Larue%20avec%20%40K"
+            "ekeRachel%20et%20%40MathildePanot%20%23PourNosRetraites&url=https%3A%2F%2Factionpopulaire.fr%2Fevenements%"
+            "2F3a167ba7-99fb-4709-876e-60d9994322a4%2F"
+        )
+
+        # format_html will html-escape the URL
+        LINK = format_html('<a href="{}">Un super lien ici !</a>', URL)
+
+        campaign = Campaign.objects.create(
+            message_content_html=LINK,
+            message_content_text="Test",
+            utm_name="tracked_campaign",
+        )
+
+        subscriber = Subscriber.objects.get(email="a@example.com")
+        event = campaign.get_event_for_subscriber(subscriber)
+
+        body = add_tracking_information(LINK, campaign, event.tracking_id)
+
+        match = re.search(r'href="([^"]+)"', body)
+        self.assertIsNotNone(match)
+
+        tracking_url = unescape(match.group(1))
+
+        res = self.client.get(tracking_url)
+        self.assertRedirects(
+            res,
+            URL
+            + "&utm_campaign=tracked_campaign&utm_content=link-0&utm_source=nuntius&utm_medium=email",
+            fetch_redirect_response=False,
         )

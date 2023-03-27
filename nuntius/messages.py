@@ -5,6 +5,7 @@ from urllib.parse import quote as url_quote
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.template import Context
 from django.urls import reverse
+from html import unescape, escape
 
 from nuntius import app_settings
 from nuntius.utils.messages import sign_url, extend_query
@@ -50,10 +51,11 @@ def href_url_replacer(campaign, tracking_id):
     link_counter = count()
 
     def url_replace(match):
-        url = make_tracking_url(
-            match.group("url"), campaign, tracking_id, next(link_counter)
-        )
-        return f"{match.group('prefix')}{url}"
+        # attention : les URLs sont normalement HTML-échappées dans les attributs HREF
+        captured_url = match.group("url")
+        captured_url = unescape(captured_url)
+        url = make_tracking_url(captured_url, campaign, tracking_id, next(link_counter))
+        return f"{match.group('prefix')}{escape(url)}"
 
     return url_replace
 
