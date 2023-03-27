@@ -22,8 +22,22 @@ from standalone.models import Subscriber
 EXTERNAL_LINK = "http://otherexample.com"
 ESP_MESSAGE_ID = "testmessageid"
 HTML_MESSAGE = '<body><a href="' + EXTERNAL_LINK + '">Link</a></body>'
+PUBLIC_URL = "http://public.com"
 IMAGES_URL = "http://images.com"
 LINKS_URL = "http://links.com"
+
+
+def settings_patcher(klass):
+    patchers = [
+        patch("nuntius.app_settings.PUBLIC_URL", new=PUBLIC_URL),
+        patch("nuntius.app_settings.IMAGES_URL", new=IMAGES_URL),
+        patch("nuntius.app_settings.LINKS_URL", new=LINKS_URL),
+    ]
+
+    for p in patchers:
+        klass = p(klass)
+
+    return klass
 
 
 class TrackingMixin:
@@ -209,8 +223,7 @@ class BounceTestCase(TrackingMixin, TestCase):
         self.assertEqual(c.result, CampaignSentStatusType.BOUNCED)
 
 
-@patch("nuntius.app_settings.IMAGES_URL", new=IMAGES_URL)
-@patch("nuntius.app_settings.LINKS_URL", new=LINKS_URL)
+@settings_patcher
 class TrackingTestCase(TestCase):
     fixtures = ["subscribers.json"]
     maxDiff = None
@@ -230,7 +243,7 @@ class TrackingTestCase(TestCase):
 
         self.assertIn(
             '<img src="{}" width="1" height="1" alt="nt">'.format(
-                IMAGES_URL + tracking_url
+                PUBLIC_URL + tracking_url
             ),
             str(message.message()),
         )

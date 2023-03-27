@@ -29,7 +29,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 Django = ">=2.0"
 Pillow = ">=9.0.1"
 django-stdimage = "*"
@@ -51,6 +51,9 @@ black = "^23.1.0"
 anymail = ["django-anymail", "boto3"]
 mysql = ["mysqlclient"]
 push = ["django-push-notifications", "apns", "pywebpush"]
+
+[tool.poetry.group.dev.dependencies]
+ipython = "^8.11.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
