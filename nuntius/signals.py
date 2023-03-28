@@ -23,7 +23,7 @@ class AnymailLoggerAdapter(logging.LoggerAdapter):
         )
 
 
-logger = AnymailLoggerAdapter(logging.getLogger(__name__))
+logger = AnymailLoggerAdapter(logging.getLogger(__name__), extra={})
 
 
 try:
