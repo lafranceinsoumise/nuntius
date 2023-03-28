@@ -1,6 +1,10 @@
 # Changelog
 
-## 2.3.0
+## 2.3.2
+
+* Fixes package for Python <= 3.9
+
+## 2.3.1
 
 * Fixes html-escaping bug when handling tracking URLs.
 
