@@ -48,7 +48,7 @@ def generate_placeholder(width, height):
             x = 0
             y = y + line_size * 2
 
-    (textwidth, textheight) = draw.textsize(f"{width} x {height}")
+    (_left, _top, textwidth, textheight) = draw.textbbox((0,0), f"{width} x {height}")
     draw.text(
         ((int(width) - textwidth) / 2, (int(height) - textheight) / 2),
         f"{width} x {height}",

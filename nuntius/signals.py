@@ -12,7 +12,7 @@ from nuntius.models import CampaignSentEvent, CampaignSentStatusType
 class AnymailLoggerAdapter(logging.LoggerAdapter):
     def process(
         self, msg: Any, kwargs: MutableMapping[str, Any]
-    ) -> tuple[Any, MutableMapping[str, Any]]:
+    ):
         kwargs["extra"] = {**kwargs.get("extra", {}), "event": msg}
         return (
             "event_type={} recipient={}".format(

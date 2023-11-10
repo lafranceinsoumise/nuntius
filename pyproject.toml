@@ -42,6 +42,7 @@ django-push-notifications = {version = ">=2.0.0", optional = true}
 apns = {version = ">=2.0.1", optional = true}
 pywebpush = {version = ">=1.14.0", optional = true}
 dj-database-url = ">=1.2.0"
+pillow = "10.1.0"
 
 [tool.poetry.dev-dependencies]
 tqdm = "^4.60.0"
