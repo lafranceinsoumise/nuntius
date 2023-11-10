@@ -7,7 +7,6 @@ from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db.models import F
 from django.http import HttpResponse, HttpResponseBadRequest
-from django.http.request import validate_host
 from django.shortcuts import redirect, get_object_or_404
 from django.views.decorators.cache import cache_control
 
@@ -65,7 +64,7 @@ def mosaico_image_processor_view(request):
         elif height:
             ratio = height / image.size[1]
 
-        image.resize((round(size * ratio) for size in image.size), Image.ANTIALIAS)
+        image.resize((round(size * ratio) for size in image.size), Image.LANCZOS)
         response = HttpResponse(content_type=f"image/{image.format.lower()}")
         image.save(response, image.format)
         return response
