@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.4.0
+
+* Apply security updates
+
 ## 2.3.2
 
 * Fixes package for Python <= 3.9
