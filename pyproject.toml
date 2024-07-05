@@ -33,7 +33,7 @@ python = "^3.8"
 Django = ">=2.0"
 Pillow = ">=9.0.1"
 django-stdimage = "*"
-html2text = "*"
+inscriptis = "2.5.*"
 tenacity = "*"
 django-anymail = { version = "*", optional = true }
 boto3 = { version = "*", optional = true }

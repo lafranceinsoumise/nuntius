@@ -3,19 +3,19 @@ import hmac
 from base64 import urlsafe_b64encode
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
-import html2text
+from inscriptis import get_text
+from inscriptis.model.config import ParserConfig
+from inscriptis.css_profiles import STRICT_CSS_PROFILE
+
 from PIL import Image, ImageDraw
 
 from nuntius import app_settings
-
-_h = html2text.HTML2Text()
-_h.ignore_images = True
 
 DIGEST_MOD = hashlib.sha1
 
 
 def generate_plain_text(html_message):
-    return _h.handle(html_message)
+    return get_text(html_message, config=ParserConfig(display_links=True))
 
 
 def generate_placeholder(width, height):
