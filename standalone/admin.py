@@ -43,12 +43,11 @@ if CAMPAIGN_TYPE_EMAIL in settings.NUNTIUS_ENABLED_CAMPAIGN_TYPES:
 if CAMPAIGN_TYPE_PUSH in settings.NUNTIUS_ENABLED_CAMPAIGN_TYPES:
     try:
         from push_notifications.admin import DeviceAdmin
-        from push_notifications.models import GCMDevice, WNSDevice, APNSDevice
+        from push_notifications.models import GCMDevice
 
         admin_site.register(PushCampaign, PushCampaignAdmin)
         admin_site.register(PushCampaignSentEvent, PushCampaignSentEventAdmin)
 
-        admin_site.register(APNSDevice, DeviceAdmin)
         admin_site.register(GCMDevice, DeviceAdmin)
     except ImportError:
         pass

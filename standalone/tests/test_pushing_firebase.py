@@ -135,7 +135,6 @@ else:
             self.segment = Segment.objects.create(id="push_segment")
             self.subscriber.segments.add(self.segment)
             self.subscriber.save()
-
             self.gcm_device = GCMDevice.objects.create(
                 name="",
                 active=True,
@@ -148,7 +147,7 @@ else:
 
         def test_devices(self):
             devices = self.subscriber.get_subscriber_push_devices()
-            self.assertEqual(len(devices), 1)
+            self.assertEqual(len(devices), 2)
             self.assertIn(self.gcm_device, devices)
 
         @patch("nuntius.utils.notifications.push_gcm_notification", side_effect=Mock())

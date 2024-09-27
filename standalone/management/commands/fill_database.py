@@ -81,33 +81,10 @@ class Command(BaseCommand):
 
         if app_settings.CAMPAIGN_TYPE_PUSH in settings.NUNTIUS_ENABLED_CAMPAIGN_TYPES:
             try:
-                from push_notifications.models import APNSDevice, GCMDevice
+                from push_notifications.models import GCMDevice
             except ImportError:
                 pass
             else:
-                self.stdout.write(
-                    f"Creating {quantity} APNS devices with batch size {batch_size}."
-                )
-                APNSDevice.objects.filter(
-                    registration_id__in=subscribers.values_list("email", flat=True)
-                )
-                objs = (
-                    APNSDevice(
-                        name="",
-                        active=True,
-                        device_id=uuid.uuid4(),
-                        registration_id=subscriber.email,
-                    )
-                    for subscriber in subscribers.all()
-                )
-                with tqdm(total=quantity) as progress_bar:
-                    while True:
-                        batch = list(islice(objs, batch_size))
-                        if not batch:
-                            break
-                        APNSDevice.objects.bulk_create(batch, batch_size)
-                        progress_bar.update(batch_size)
-
                 self.stdout.write(
                     f"Creating {quantity} GCM devices with batch size {batch_size}."
                 )
