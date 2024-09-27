@@ -33,14 +33,9 @@ class Subscriber(BaseSubscriber):
 
     def get_subscriber_push_devices(self):
         try:
-            from push_notifications.models import APNSDevice, GCMDevice
+            from push_notifications.models import GCMDevice
 
             return [
-                device
-                for device in APNSDevice.objects.filter(
-                    registration_id=self.email, active=True
-                )
-            ] + [
                 device
                 for device in GCMDevice.objects.filter(
                     registration_id=self.email, active=True

@@ -103,13 +103,12 @@ In order to use push notifications, `NUNTIUS_PUSH_NOTIFICATION_SETTINGS` must be
 (cf. [the `django-push-notifications` documentation](https://github.com/jazzband/django-push-notifications#settings-list))
 ```py
 NUNTIUS_PUSH_NOTIFICATIONS_SETTINGS = {
-    "FCM_API_KEY": "[your api key]",
-    "GCM_API_KEY": "[your api key]",
-    "APNS_CERTIFICATE": "/path/to/your/certificate.pem",
-    "APNS_TOPIC": "com.example.push_test",
+    "PLATFORM": "FCM",
+    "FIREBASE_APP": "[your api key]",
     # ...
 }
 ```
+We are using Firebase to send notifications on Android and iOS devices.
 
 ## Advanced usage
 

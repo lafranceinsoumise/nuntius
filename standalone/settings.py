@@ -15,7 +15,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "push_notifications",
-    "nuntius",
+    "nuntius"
 ]
 
 MIDDLEWARE = [
@@ -76,18 +76,23 @@ NUNTIUS_DEFAULT_FROM_EMAIL = "test@example.com"
 NUNTIUS_DEFAULT_FROM_NAME = "Sender"
 NUNTIUS_DEFAULT_REPLY_TO_EMAIL = "replyto@example.com"
 NUNTIUS_DEFAULT_REPLY_TO_NAME = "Reply to me"
+
 # Push notifications
+import firebase_admin
+from firebase_admin import credentials
+
+if os.environ.get("FIREBASE_CERT_PATH") is not None:
+    cred = credentials.Certificate(os.environ.get("FIREBASE_CERT_PATH"))
+    firebase_app = firebase_admin.initialize_app(cred)
+else:
+    firebase_app = firebase_admin.initialize_app()
+
 NUNTIUS_PUSH_NOTIFICATION_SETTINGS = {
     "UPDATE_ON_DUPLICATE_REG_ID": True,
     "UNIQUE_REG_ID": True,
-    "APNS_AUTH_KEY_PATH": os.environ.get(
-        "APNS_AUTH_KEY_PATH", os.path.join(os.path.dirname(BASE_DIR), "..", "apns.p8")
-    ),
-    "APNS_AUTH_KEY_ID": os.environ.get("APNS_AUTH_KEY_ID"),
-    "APNS_TEAM_ID": os.environ.get("APNS_TEAM_ID"),
-    "APNS_TOPIC": os.environ.get("APNS_TOPIC", "fr.nuntius.ios"),
-    "APNS_USE_SANDBOX": os.environ.get("APNS_USE_SANDBOX", "true").lower() == "true",
-    "FCM_API_KEY": os.environ.get("FCM_API_KEY", "[your api key]"),
+    # PLATFORM (required) determines what additional settings are required.
+    "PLATFORM": "FCM",
+    "FIREBASE_APP": firebase_app,
 }
 
 MEDIA_URL = "/media/"

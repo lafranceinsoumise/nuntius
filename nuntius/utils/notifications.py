@@ -6,14 +6,15 @@ from nuntius import app_settings
 from nuntius.models import PushCampaignSentStatusType
 from nuntius.utils.messages import sign_url, extend_query
 
+from firebase_admin import messaging
 
 def get_pushing_error_classes():
     try:
-        from push_notifications import apns, gcm
+        from push_notifications import gcm
     except ImportError:
         classes = tuple()
     else:
-        classes = (gcm.GCMError, apns.APNSError)
+        classes = (gcm.FirebaseError)
 
     return classes
 
@@ -59,33 +60,34 @@ def notification_for_event(sent_event):
 
     return notification
 
-
-def push_apns_notification(device, notification, thread_id):
-    try:
-        from push_notifications.apns import APNSServerError
-    except ImportError as e:
-        raise e
-    else:
-        try:
-            device.send_message(
-                message=notification,
-                thread_id=thread_id,
-                extra={"url": notification["url"]},
-            )
-        except APNSServerError as e:
-            if "Unregistered" in str(e):
-                device.active = False
-                device.save()
-            raise e
-
-
 def push_gcm_notification(device, notification, thread_id):
-    device.send_message(message=None, thread_id=thread_id, extra=notification)
+    ttl = 259200 # equals 3 days
+    push_message = messaging.Message(
+        data={
+            "url": notification["url"]
+        },
+        notification=messaging.Notification(
+            title=notification["title"],
+            body=notification["body"],
+            image=notification["notification_icon"]
+        ),
+        android=messaging.AndroidConfig(
+            ttl=ttl,
+            collapse_key=thread_id
+        ),
+        apns=messaging.APNSConfig(
+            headers={
+                "apns-expiration": ttl,
+                "apns-collapse-id": thread_id
+            }
+        )
+    )
+    device.send_message(push_message)
 
 
 def push_notification(notification, push_sent_event):
     try:
-        from push_notifications.models import APNSDevice, GCMDevice
+        from push_notifications.models import GCMDevice
     except ImportError:
         push_sent_event.result = PushCampaignSentStatusType.ERROR
     else:
@@ -94,10 +96,6 @@ def push_notification(notification, push_sent_event):
         pushed_count = 0
         for device in push_sent_event.devices:
             try:
-                if isinstance(device, APNSDevice):
-                    push_apns_notification(
-                        device, notification, push_sent_event.campaign.id
-                    )
                 if isinstance(device, GCMDevice):
                     push_gcm_notification(
                         device, notification, push_sent_event.campaign.id
