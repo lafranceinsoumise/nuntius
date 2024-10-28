@@ -10,6 +10,16 @@ editor, for sending beautiful emails to your subscribers and
 push notification support through Apple Push Notification service (APNs) 
 and Google Cloud Messaging (GCM).
 
+## How to deploy
+Update the code, then:
+```
+# be sure to be connected to Pypi (optional)
+poetry config pypi-token.pypi yourToken
+
+poetry build
+poetry publish 
+```
+
 ## How it works
 
 Nuntius is agnostic about your subscribers model. You can use your current
