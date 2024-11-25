@@ -408,6 +408,7 @@ class CampaignSentEventAdmin(admin.ModelAdmin):
     def has_add_permission(self, *args, **kwargs):
         return False
 
+    list_per_page = 10
     actions = None
     readonly_fields = ("subscriber_filter", "campaign_filter")
     list_filter = ("result", TrackingFilter)
