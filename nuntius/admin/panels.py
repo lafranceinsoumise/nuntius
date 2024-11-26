@@ -401,6 +401,22 @@ class TrackingFilter(admin.SimpleListFilter):
             return queryset.exclude(click_count=0)
 
 
+from django.utils.functional import cached_property
+from django.core.paginator import Paginator
+from django.contrib.admin.views.main import ChangeList
+
+class PaginatorCampaignSentEventAdmin(Paginator):
+    @cached_property
+    def count(self):
+        """
+        CampaignSentEventAdmin has a huge amount of data, we limit the count to avoid
+        parsing the full database for each request on the list.
+        :return:
+        """
+        distinct = self.object_list.values("datetime").distinct()
+        limited_distinct_datetimes = distinct[:5000]
+        return limited_distinct_datetimes.count()
+
 class CampaignSentEventAdmin(admin.ModelAdmin):
     def has_change_permission(self, *args, **kwargs):
         return False
@@ -408,11 +424,18 @@ class CampaignSentEventAdmin(admin.ModelAdmin):
     def has_add_permission(self, *args, **kwargs):
         return False
 
-    list_per_page = 10
+    paginator = PaginatorCampaignSentEventAdmin
+    list_per_page = 50
     actions = None
     readonly_fields = ("subscriber_filter", "campaign_filter")
     list_filter = ("result", TrackingFilter)
     list_display_links = None
+
+    def get_changelist(self, request, **kwargs):
+        class NoDeterministicOrderChangeList(ChangeList):
+            def _get_deterministic_ordering(self, ordering):
+                return ("-datetime",)
+        return NoDeterministicOrderChangeList
 
     def get_list_display(self, request):
         list_display = ("email", "datetime", "result", "open_count", "click_count")
