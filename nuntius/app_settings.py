@@ -70,3 +70,10 @@ if CAMPAIGN_TYPE_PUSH in ENABLED_CAMPAIGN_TYPES:
             "enabled campaign, or add a valid 'django-push-notification' configuration ("
             "settings.NUNTIUS_PUSH_NOTIFICATION_SETTINGS)."
         )
+if not hasattr(settings, "NUNTIUS_PERFORMANCE"):
+    settings.NUNTIUS_PERFORMANCE = {}
+
+settings.NUNTIUS_PERFORMANCE = {
+    "CAMPAIGN_SENT_EVENT_DISABLE_FULL_PAGINATION": False,
+    **settings.NUNTIUS_PERFORMANCE
+}

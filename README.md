@@ -292,6 +292,17 @@ bounce, if there has been a successful sending just before,
 everything is fine. Otherwise, the subscriber is marked
 as permanently bounced.
 
+### Performance 
+In some cases you will have thousands of millions of CampaignSentEvent, which means you have a lot of send emails.
+At this point you will have issues display the list of CampaignSentEvent or the list of sent campaign for a subscriber.
+
+You can disable the full pagination (which will mostly disables the full count of the campaign sent and limit the requested elements)
+to optimize the loading page of the campaign sent event admin.
+```python
+NUNTIUS_PERFORMANCE = {"CAMPAIGN_SENT_EVENT_DISABLE_FULL_PAGINATION": True}
+
+```
+
 ## Tracking
 
 Opening and clicks are tracked by adding a white pixel and replacing links in emails, and by using a proxy URL on
