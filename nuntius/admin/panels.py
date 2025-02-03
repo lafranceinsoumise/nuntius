@@ -16,6 +16,7 @@ from django.views.generic import CreateView
 from nuntius import app_settings
 from nuntius.models import Campaign, MosaicoImage, CampaignSentEvent
 from nuntius.utils.messages import build_image_absolute_uri
+from nuntius.views import subscriber_count_view, count_view
 
 
 def subscriber_class():
@@ -165,61 +166,80 @@ class CampaignAdmin(admin.ModelAdmin):
 
         return super().save_model(request, campaign, form, change)
 
+    def async_count(self, instance, name):
+        if not instance or instance.id is None:
+            return "-"
+
+        return mark_safe(
+            f"""
+            <span id="{name}-count-{instance.id}" 
+                  hx-get="{reverse(f"admin:nuntius_campaign_count", args=[instance.id, name])}" 
+                  hx-trigger="load"
+                  hx-swap="innerHTML">
+                  Chargement..
+            </span>
+        """
+        )
+
     def segment_subscribers(self, instance):
-        if instance.segment is None:
-            return subscriber_class().objects.count()
-        return instance.segment.get_subscribers_count()
+        if not instance or instance.id is None:
+            return "-"
+
+        return mark_safe(
+            f"""
+                <span id="subscribers-count-{instance.id}" 
+                      hx-get="{reverse(f"admin:nuntius_campaign_subscribers_count",     args=[instance.id])}" 
+                      hx-trigger="load"
+                      hx-swap="innerHTML">
+                      Chargement..
+                </span>
+            """
+        )
 
     segment_subscribers.short_description = _("Subscribers")
 
     def sent_to(self, instance):
-        return format_html(
-            '<a href="{}">{}</a>',
-            reverse("admin:nuntius_campaignsentevent_changelist")
-            + "?campaign_id__exact="
-            + str(instance.pk),
-            str(instance.get_sent_count()),
-        )
+        return self.async_count(instance, "sent")
 
     sent_to.short_description = _("Sent to")
 
     def sent_ok(self, instance):
-        return instance.get_ok_count()
+        return self.async_count(instance, "ok")
 
     sent_ok.short_description = _("Ok")
 
     def sent_bounced(self, instance):
-        return instance.get_bounced_count()
+        return self.async_count(instance, "bounced")
 
     sent_bounced.short_description = _("Bounced")
 
     def sent_complained(self, instance):
-        return instance.get_complained_count()
+        return self.async_count(instance, "complained")
 
     sent_complained.short_description = _("Complained")
 
     def sent_blocked(self, instance):
-        return instance.get_blocked_count()
+        return self.async_count(instance, "blocked")
 
     sent_blocked.short_description = _("Blocked")
 
     def open_count(self, instance):
-        return instance.get_open_count()
+        return self.async_count(instance, "open")
 
     open_count.short_description = _("Open count")
 
     def unique_open_count(self, instance):
-        return instance.get_unique_open_count()
+        return self.async_count(instance, "unique_open")
 
     unique_open_count.short_description = _("Unique open count")
 
     def click_count(self, instance):
-        return instance.get_click_count()
+        return self.async_count(instance, "click")
 
     click_count.short_description = _("Click count")
 
     def unique_click_count(self, instance):
-        return instance.get_unique_click_count()
+        return self.async_count(instance, "unique_click")
 
     unique_click_count.short_description = _("Unique click count")
 
@@ -323,6 +343,16 @@ class CampaignAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(MosaicoImageUploadView.as_view()),
                 name="nuntius_campaign_mosaico_image_upload",
             ),
+            path(
+                "<pk>/nuntius/subscribers/count/",
+                subscriber_count_view,
+                name="nuntius_campaign_subscribers_count"
+            ),
+            path(
+                f"<pk>/nuntius/<name>/count/",
+                count_view,
+                name=f"nuntius_campaign_count"
+            )
         ] + super().get_urls()
 
     def send_view(self, request, pk):

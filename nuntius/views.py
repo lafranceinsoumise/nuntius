@@ -9,8 +9,9 @@ from django.db.models import F
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, get_object_or_404
 from django.views.decorators.cache import cache_control
+from django.shortcuts import get_object_or_404, render
 
-from nuntius.models import MosaicoImage, CampaignSentEvent, PushCampaignSentEvent
+from nuntius.models import MosaicoImage, CampaignSentEvent, PushCampaignSentEvent, Campaign
 from nuntius.utils.messages import (
     generate_placeholder,
     url_signature_is_valid,
@@ -115,3 +116,13 @@ def track_push_click_view(request, tracking_id, link, signature):
     return track_click_view(
         request, tracking_id, link, signature, PushCampaignSentEvent, "push"
     )
+
+
+def subscriber_count_view(request, pk):
+    from nuntius.admin import subscriber_class
+    campaign = get_object_or_404(Campaign, id=pk)
+    return render(request, "admin/subscriber_count.html", {"campaign": campaign, "subscriber_class": subscriber_class()})
+
+def count_view(request, pk, name):
+    campaign = get_object_or_404(Campaign, id=pk)
+    return render(request, "admin/count.html", {"campaign": campaign, "name": name, "count": getattr(campaign, f"get_{name}_count")()})

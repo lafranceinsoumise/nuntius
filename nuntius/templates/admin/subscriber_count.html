@@ -1,0 +1,7 @@
+<span id="subscribers-count-{{ campaign.id }}">
+    {% if campaign.segment == None %}
+        {{  subscriber_class.objects.count }}
+    {% else %}
+        {{ campaign.segment.get_subscribers_count }}
+    {% endif %}
+</span>

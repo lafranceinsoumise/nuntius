@@ -1,0 +1,8 @@
+
+<span id="{{ name }}-count-{{ campaign.id }}">
+    {% if name == "sent" %}
+        <a href="{% url 'admin:nuntius_campaignsentevent_changelist' %}?campaign_id__exact={{ campaign.pk }}">{{ count }} - (Voir la liste)</a>
+    {% else %}
+        {{ count }}
+    {%  endif %}
+</span>
