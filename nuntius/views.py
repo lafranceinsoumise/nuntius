@@ -121,8 +121,8 @@ def track_push_click_view(request, tracking_id, link, signature):
 def subscriber_count_view(request, pk):
     from nuntius.admin import subscriber_class
     campaign = get_object_or_404(Campaign, id=pk)
-    return render(request, "admin/subscriber_count.html", {"campaign": campaign, "subscriber_class": subscriber_class()})
+    return render(request, "admin/nuntius/subscriber_count.html", {"campaign": campaign, "subscriber_class": subscriber_class()})
 
 def count_view(request, pk, name):
     campaign = get_object_or_404(Campaign, id=pk)
-    return render(request, "admin/count.html", {"campaign": campaign, "name": name, "count": getattr(campaign, f"get_{name}_count")()})
+    return render(request, "admin/nuntius/count.html", {"campaign": campaign, "name": name, "count": getattr(campaign, f"get_{name}_count")()})
