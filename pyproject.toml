@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nuntius"
-version = "2.4.4a2"
+version = "2.4.4"
 description = "A newsletter app to be used with Django or standalone."
 authors = ["Jill Royer <hello@jillroyer.me>", "Salomé Cheysson <salome@cheysson.fr>", "Alexandra Puret <alex.loo@protonmail.com>"]
 license = "GPLv3"
