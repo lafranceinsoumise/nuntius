@@ -25,6 +25,13 @@ class PushCampaign(AbstractCampaign):
         _("Notification icon"), null=True, blank=True, max_length=255
     )
 
+    def get_subscribers_queryset(self):
+        if self.segment is not None and hasattr(
+            self.segment, "get_push_subscribers_queryset"
+        ):
+            return self.segment.get_push_subscribers_queryset()
+        return super().get_subscribers_queryset()
+
     def get_sent_count(self):
         return (
             PushCampaignSentEvent.objects.filter(campaign=self)
