@@ -65,7 +65,7 @@ def mosaico_image_processor_view(request):
         elif height:
             ratio = height / image.size[1]
 
-        image.resize((round(size * ratio) for size in image.size), Image.LANCZOS)
+        image.resize([round(size * ratio) for size in image.size], Image.Resampling.LANCZOS)
         response = HttpResponse(content_type=f"image/{image.format.lower()}")
         image.save(response, image.format)
         return response
